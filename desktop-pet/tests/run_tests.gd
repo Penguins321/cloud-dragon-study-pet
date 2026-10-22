@@ -52,6 +52,8 @@ func run() -> void:
 	await load("res://tests/test_motion.gd").run(self, check)
 	await load("res://tests/test_motion_reuse.gd").run(self, check)
 	await load("res://tests/test_flexible.gd").run(self, check)
+	load("res://tests/test_wind.gd").run(self, check)
+	load("res://tests/test_tail_flow.gd").run(self, check)
 	print("%d checks, %d failures" % [checks, failures.size()])
 	if failures.is_empty():
 		print("ALL CHECKS PASSED")

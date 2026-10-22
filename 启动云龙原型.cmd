@@ -1,7 +1,7 @@
 @echo off
-if not exist "%~dp0desktop-pet\build\CloudDragonPrototype-v0.3.exe" (
+if not exist "%~dp0desktop-pet\build\CloudDragonPrototype-v0.4.exe" (
   echo Please run build-prototype.ps1 first. See HANDOFF.md for setup.
   pause
   exit /b 1
 )
-start "" "%~dp0desktop-pet\build\CloudDragonPrototype-v0.3.exe"
+start "" "%~dp0desktop-pet\build\CloudDragonPrototype-v0.4.exe"

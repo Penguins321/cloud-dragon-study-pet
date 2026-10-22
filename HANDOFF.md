@@ -29,12 +29,14 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 先读 [需求规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-design.md)、[界面规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-ui-prototype.md)、[项目操作与模块说明](desktop-pet/README.md)，再看 [实际验证范围](desktop-pet/docs/verification.md)。既有实施记录在 [执行记录](docs/superpowers/execution/prototype-progress.md)，保留历史，不把早期“未建 Git”等描述当成当前状态。
 
-当前 v0.3：左键云龙循环动作，气泡 / 右键打开计划；18 关节 GPU 网格带动身体、尾巴和四肢，显示轮廓使用相同网格变形。保留 50% 缩放和逐帧拖动边界。确切检查结果以验证记录为准。所有动作先按 [v2 结构拆解](desktop-pet/docs/rig-v2-design.md) 设计，不能直接生成一组外观相似但身体结构不同的帧。
+当前 v0.4：旧云龙运行素材有 36 个控制关节、独立双须 / 鬃毛、五段尾部与分束尾焰，轮廓使用相同网格变形。保留左键循环动作、气泡 / 右键计划、50% 缩放和逐帧拖动边界。当前规则见 [v3 风动手册](desktop-pet/docs/wind-and-tail-v3.md)，确切测试范围见验证记录。
+
+用户新选择 **C 玉骨天龙**，要求清冷古雅、线条利落、减少亲和感；已归档[细化设计与提示词](assets/cloud-dragon/redesigns/2026-10-22-jade-dragon/README.md)，尚未接入运行皮肤。最新要求是**全身细致的力传导和动作**，不限尾巴；必须先读[全身动作规格](docs/superpowers/specs/2026-10-22-jade-dragon-whole-body-motion.md)。当前周期风动基线不代表已完成整体动力学、动作阶段、惯性收势或新素材分层。
 
 下一阶段顺序：
 
 1. 在真实桌面检查 50% / 75% / 100% / 125% 下的尾焰、须、四肢完整性、点击穿透、拖动和托盘恢复；再检查 150% DPI、多屏与 Windows 10。
-2. 在已实现的 v2 关节绑定上继续微调动作。若需要闭眼、转背、翻身、近远肢换遮挡或盘绕，先补分层 / 多视角美术并重新校验；不要退回 v1 整图平移，也不要把待审生成候选直接切帧。
+2. 按最新全身动作规格推进玉骨天龙：先校验结构与拆层美术，再建立主驱动、关节约束、分区惯性和动作阶段。新图比例不同，必须重新绑定；换色复用动作定义与动力参数。先完成一次“蓄势—推进—滑翔—收势”的完整动作，逐部位检查力传递，再拓展其他动作。
 3. 正式产品化：安装 / 卸载与可选开机自启动、清单导入导出、备份恢复界面、发行包与资源许可核对。这些还没实现，不能向朋友承诺已支持。
 
 ## 修改入口与边界
@@ -45,7 +47,7 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 | 保存与备份 | `desktop-pet/study/plan_store.gd`；先保存候选，再更新 UI 与庆祝 |
 | 宠物语义动作 / 优先级 / 轮廓变换 | `desktop-pet/pet/pet_view.gd` |
 | 云龙外观、动画、尺寸范围 | `desktop-pet/pet/skins/cloud_dragon/`；新增皮肤不修改学习模型 |
-| 换颜色保留动作 | `desktop-pet/pet/motions/cloud_dragon_flexible_v2.tres` + `pet/skins/cloud_dragon/rig.gd`；规则见 `desktop-pet/docs/action-catalog-v2.md`，v1 保留归档 |
+| 换颜色保留动作 | `desktop-pet/pet/motions/cloud_dragon_flexible_v2.tres` + `pet/skins/cloud_dragon/rig.gd` + `flame.gdshader`；当前规则见 `desktop-pet/docs/wind-and-tail-v3.md` |
 | 透明原生窗口、拖动、托盘、多屏恢复 | `desktop-pet/desktop/pet_window.gd`、`window_geometry.gd` |
 | 气泡与面板协调 | `desktop-pet/main.gd` |
 | 普通控件样式与设置 | `desktop-pet/ui/`，Theme 与角色皮肤独立 |
@@ -55,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 ## 验证和交付
 
-`test-prototype.ps1` 使用隔离测试目录，失败就停下处理；不要删断言来换取通过。真实渲染检查入口 `desktop-pet/tests/smoke.gd`，运行示例见验证记录。`build-prototype.ps1` 输出 `desktop-pet/build/CloudDragonPrototype-v0.3.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。
+`test-prototype.ps1` 使用隔离测试目录，失败就停下处理；不要删断言来换取通过。真实渲染检查入口 `desktop-pet/tests/smoke.gd`，运行示例见验证记录。`build-prototype.ps1` 输出 `desktop-pet/build/CloudDragonPrototype-v0.4.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。
 
 目前没有安装器、自启动或自动更新。EXE 没签名，分享时附带引擎及第三方许可文件并说明这是原型。项目本身尚未决定对外开源许可证；私有仓库不代表第三方素材可以任意再分发。
 

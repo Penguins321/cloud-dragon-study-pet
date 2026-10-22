@@ -50,7 +50,7 @@ func run() -> void:
 				actor.add_child(line)
 	await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png(output.path_join("rig-poses-v2.png"))
+	root.get_texture().get_image().save_png(output.path_join("rig-poses-wind-v3.png"))
 	layout.free()
 	root.size = Vector2i(560, 350)
 	var actor = load("res://pet/skins/cloud_dragon/view.tscn").instantiate()
@@ -63,5 +63,32 @@ func run() -> void:
 		await process_frame
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png(output.path_join("frame-%03d.png" % frame))
+	var detail := output.path_join("head")
+	DirAccess.make_dir_recursive_absolute(detail)
+	root.size = Vector2i(640, 390)
+	actor.position = Vector2(-800, 45)
+	actor.scale = Vector2(3, 3)
+	var label := Label.new()
+	label.theme = load("res://ui/study_theme.tres")
+	label.text = "双须与鬃毛 · 迎风跟随（3 倍细节）"
+	label.position = Vector2(24, 12)
+	root.add_child(label)
+	for frame in range(64):
+		actor.phase = TAU * frame / 64.0
+		actor.sync_pose()
+		await process_frame
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(detail.path_join("frame-%03d.png" % frame))
+	var tail_detail := output.path_join("tail")
+	DirAccess.make_dir_recursive_absolute(tail_detail)
+	root.size = Vector2i(640, 600)
+	actor.position = Vector2(125, 40)
+	label.text = "分段尾摆与三束尾焰 · 3 倍细节"
+	for frame in range(64):
+		actor.phase = TAU * frame / 64.0
+		actor.sync_pose()
+		await process_frame
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(tail_detail.path_join("frame-%03d.png" % frame))
 	print("PREVIEW FRAMES SAVED ", output)
 	quit()

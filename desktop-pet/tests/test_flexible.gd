@@ -53,8 +53,8 @@ static func run(tree: SceneTree, check: Callable) -> void:
 		view.player.advance(0.0)
 		for moment in [0.0, 0.125, 0.25, 0.5, 0.75, 0.875, 0.999]:
 			view.player.seek(view.player.current_animation_length * moment, true)
-			for step in range(8):
-				rig.phase = TAU * step / 8.0
+			for step in range(16):
+				rig.phase = TAU * step / 16.0
 				rig.sync_pose()
 				_measure_pose(view, visible, stats)
 	# Also inspect actual crossfade frames, not just positions within a single clip.

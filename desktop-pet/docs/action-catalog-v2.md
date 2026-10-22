@@ -1,6 +1,6 @@
 # 云龙动作复用手册 · v2 关节版
 
-更新：2026-10-22。v0.3 起使用此版；[v1 手册](action-catalog.md) 和 `cloud_dragon_float_v1.tres` 保留作历史归档。
+更新：2026-10-22。本页保留 v0.3 的身体与动作语义说明；v0.4 新增双须、鬃毛、五段尾部与分束尾焰，当前绑定和运动规则以 [v3 风动手册](wind-and-tail-v3.md) 为准。动作时间线仍共享 v2 库。[v1 手册](action-catalog.md) 和 `cloud_dragon_float_v1.tres` 保留归档。
 
 ## 直接操作
 
@@ -72,7 +72,7 @@
 
 显示包围框为 `Rect2(-45,-90,535,345)`，覆盖已测试姿态；拖动每帧限制整个窗口在屏幕工作区内。GPU 与原生显示轮廓使用相同网格三角形的重心插值；轮廓在水平、垂直和对角网格边界处细分，避免大幅弯曲时直线截掉身体。轮廓余量与半像素更新阈值沿用 v1 的取整保护。
 
-## 复现预览
+## 历史预览与复现
 
 在项目根目录 PowerShell 执行：
 
@@ -80,7 +80,7 @@
 $env:CLOUD_DRAGON_PREVIEW_DIR = Join-Path (Get-Location) '.tools/rig-frames'
 $env:APPDATA = Join-Path (Get-Location) '.tools/appdata'
 & '.tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe' --path desktop-pet --script res://tests/preview_motion.gd
-powershell -NoProfile -STA -ExecutionPolicy Bypass -File .\scripts\encode-motion-preview.ps1 -FrameDirectory $env:CLOUD_DRAGON_PREVIEW_DIR -Destination (Join-Path (Get-Location) 'desktop-pet/docs/screenshots/rig-swim-v2.gif')
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File .\scripts\encode-motion-preview.ps1 -FrameDirectory $env:CLOUD_DRAGON_PREVIEW_DIR -Destination (Join-Path (Get-Location) 'desktop-pet/docs/screenshots/rig-wind-v3.gif')
 ```
 
 预览导出器输出静态姿态图及 PNG 帧，编码脚本使用 Windows 自带 WPF，不是运行产品的依赖。帧率实测用 `tests/measure_motion.gd`，不可从 GIF 播放速度推断实时帧率。实际测试范围与未完成项目见 [验证记录](verification.md)。
