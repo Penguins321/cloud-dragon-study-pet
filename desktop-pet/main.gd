@@ -30,9 +30,9 @@ func _ready() -> void:
 		DirAccess.make_dir_recursive_absolute(data_directory)
 		store = Store.new(data_directory.path_join("plan.json"))
 		preferences_path = data_directory.path_join("preferences.cfg")
-	Engine.max_fps = 30
-	OS.low_processor_usage_mode = true
-	OS.low_processor_usage_mode_sleep_usec = 33333
+	Engine.max_fps = 60
+	OS.low_processor_usage_mode = false
+	OS.low_processor_usage_mode_sleep_usec = 16666
 	get_tree().auto_accept_quit = false
 	add_child(desktop)
 	add_child(pet)
@@ -55,7 +55,7 @@ func _ready() -> void:
 	panel = preload("res://ui/plan_panel.tscn").instantiate()
 	panel_window = _make_window("学习计划", panel, Vector2i(410, 610))
 	settings = preload("res://ui/settings_panel.tscn").instantiate()
-	settings_window = _make_window("设置", settings, Vector2i(410, 480))
+	settings_window = _make_window("设置", settings, Vector2i(410, 560))
 	panel.complete_requested.connect(_complete)
 	panel.next_requested.connect(_next)
 	panel.content_replace_requested.connect(_replace)
@@ -65,11 +65,16 @@ func _ready() -> void:
 	settings.hide_pet_requested.connect(func(): settings_window.hide(); panel_window.hide(); desktop.hide_pet())
 	settings.quit_requested.connect(_quit)
 	settings.display_scale_requested.connect(_set_scale)
+	settings.action_preview_requested.connect(func(action: StringName):
+		pet.play_action(&"idle")
+		pet.play_action(action)
+	)
 	desktop.pet_clicked.connect(_toggle_plan)
 	desktop.edit_requested.connect(_show_plan)
 	desktop.quit_requested.connect(_quit)
 	desktop.pet_visibility_changed.connect(func(active: bool):
 		pet.set_active(active)
+		OS.low_processor_usage_mode = not active
 		if not active:
 			panel_window.hide()
 			settings_window.hide()
@@ -158,14 +163,18 @@ func _update_geometry() -> void:
 	var geometry: Dictionary = pet.get_visual_geometry()
 	if geometry.is_empty():
 		return
+	var bounds: Rect2 = geometry.bounds
+	pet.position = Vector2(16, 94) - bounds.position
 	var anchor: Vector2 = pet.position + geometry.bubble_anchor
 	bubble.size = Vector2(194, 76)
 	bubble.position = Vector2(maxf(8, anchor.x - 130), 8)
 	var body_points := PackedVector2Array()
-	for point in geometry.hit_polygon:
-		body_points.append(pet.position + point)
+	for outline in geometry.render_polygons:
+		var window_points := PackedVector2Array()
+		for point in outline:
+			window_points.append(pet.position + point)
+		body_points = preload("res://desktop/window_geometry.gd").combine_input_regions(body_points, window_points)
 	var bubble_points := PackedVector2Array([bubble.position, bubble.position + Vector2(bubble.size.x, 0), bubble.position + bubble.size, bubble.position + Vector2(0, bubble.size.y)])
-	var bounds: Rect2 = geometry.bounds
 	var extent: Vector2 = (bounds.end + pet.position + Vector2(20, 12)).max(bubble.position + bubble.size + Vector2(12, 12))
 	desktop.set_visual_geometry(Rect2(Vector2.ZERO, extent), preload("res://desktop/window_geometry.gd").combine_input_regions(body_points, bubble_points))
 
@@ -198,6 +207,7 @@ func _show_plan() -> void:
 	_place_panel(panel_window)
 	panel_window.show()
 	panel_window.grab_focus()
+	pet.play_action(&"curious")
 
 func _show_settings() -> void:
 	panel_window.hide()

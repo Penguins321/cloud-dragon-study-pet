@@ -34,9 +34,21 @@ static func run(tree: SceneTree) -> void:
 		return
 	app.panel.settings_requested.emit()
 	await _capture(tree, app.settings_window, "settings")
-	app.settings.display_scale_requested.emit(0.75)
-	if app.pet.scale != Vector2(0.75, 0.75):
+	app.settings.display_scale_requested.emit(0.5)
+	if app.pet.scale != Vector2(0.5, 0.5):
 		printerr("SMOKE FAIL: display scaling not wired")
+		tree.quit(1)
+		return
+	app.settings.action_preview_requested.emit(&"curious")
+	if app.pet.current_action != &"curious":
+		printerr("SMOKE FAIL: action preview not wired")
+		tree.quit(1)
+		return
+	await tree.create_timer(0.4).timeout
+	await _capture(tree, tree.root, "desktop-pet-50")
+	app.settings.display_scale_requested.emit(1.0)
+	if not _native_region_covers_artwork(app):
+		printerr("SMOKE FAIL: final installed window region clips artwork")
 		tree.quit(1)
 		return
 	app.settings_window.hide()
@@ -51,8 +63,38 @@ static func run(tree: SceneTree) -> void:
 		tree.quit(1)
 		return
 	await _capture(tree, tree.root, "desktop-pet")
-	print("SMOKE TEST PASSED: click, complete, explicit next, settings, scale, hide/show")
+	print("SMOKE TEST PASSED: click, complete, explicit next, settings, 50% scale, action preview, hide/show")
 	tree.quit()
+
+static func _native_region_covers_artwork(app: Node) -> bool:
+	var membership = load("res://tests/test_coverage.gd")
+	var image: Image = app.pet.skin.render_texture.get_image()
+	var factor: Vector2 = app.pet.skin.render_rect.size / Vector2(image.get_size())
+	for size in [0.5, 0.75, 1.0, 1.25]:
+		app.pet.set_display_scale(size)
+		for action in app.pet.skin.action_map:
+			app.pet.play_action(&"idle")
+			app.pet.play_action(action)
+			app.pet.player.advance(0.3)
+			var length: float = app.pet.player.get_animation(app.pet.skin.action_map[action]).length
+			app.pet.player.seek(length * 0.5, true)
+			app._update_geometry()
+			for frame in range(5):
+				app.pet._process(1.0 / 60.0)
+				var native := PackedVector2Array()
+				for point in app.get_window().mouse_passthrough_polygon:
+					native.append(point.floor())
+				for y in range(0, image.get_height(), 64):
+					for x in range(0, image.get_width(), 64):
+						if image.get_pixel(x, y).a < 0.05:
+							continue
+						var local: Vector2 = app.pet.skin.render_rect.position + (Vector2(x, y) + Vector2(0.5, 0.5)) * factor
+						var window_point: Vector2 = app.pet.position + (app.pet.actor.transform * local) * size
+						if not membership._inside_outline(window_point, native) or not Rect2(Vector2.ZERO, app.get_window().size).has_point(window_point):
+							return false
+	app.pet.set_display_scale(1.0)
+	app.pet.play_action(&"idle")
+	return true
 
 static func _capture(tree: SceneTree, window: Window, title: String) -> void:
 	var directory := OS.get_environment("CLOUD_DRAGON_SCREENSHOTS")

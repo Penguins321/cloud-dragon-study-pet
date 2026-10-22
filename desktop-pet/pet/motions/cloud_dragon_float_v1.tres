@@ -1,0 +1,66 @@
+[gd_resource type="AnimationLibrary" load_steps=6 format=3]
+
+[sub_resource type="Animation" id="rest"]
+resource_name = "rest"
+length = 4.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 2
+tracks/0/keys = {"times": PackedFloat32Array(0.0, 1.0, 2.0, 3.0, 4.0), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector2(0, 0), Vector2(0, -4), Vector2(0, 0), Vector2(0, 4), Vector2(0, 0)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:rotation")
+tracks/1/interp = 2
+tracks/1/keys = {"times": PackedFloat32Array(0.0, 1.0, 2.0, 3.0, 4.0), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [0.0, -0.006981317007977318, 0.0, 0.006981317007977318, 0.0]}
+
+[sub_resource type="Animation" id="curious"]
+resource_name = "curious"
+length = 2.0
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 2
+tracks/0/keys = {"times": PackedFloat32Array(0.0, 0.5, 1.0, 1.5, 2.0), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector2(0, 0), Vector2(0, -5), Vector2(0, -7), Vector2(0, -3), Vector2(0, 0)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:rotation")
+tracks/1/interp = 2
+tracks/1/keys = {"times": PackedFloat32Array(0.0, 0.5, 1.0, 1.5, 2.0), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [0.0, -0.012217304763960306, -0.020943951023931952, -0.006981317007977318, 0.0]}
+
+[sub_resource type="Animation" id="sleepy"]
+resource_name = "sleepy"
+length = 6.0
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 2
+tracks/0/keys = {"times": PackedFloat32Array(0.0, 1.5, 3.0, 4.5, 6.0), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector2(0, 0), Vector2(0, 3), Vector2(0, 5), Vector2(0, 3), Vector2(0, 0)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:rotation")
+tracks/1/interp = 2
+tracks/1/keys = {"times": PackedFloat32Array(0.0, 1.5, 3.0, 4.5, 6.0), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [0.0, 0.008726646259971648, 0.013962634015954637, 0.008726646259971648, 0.0]}
+
+[sub_resource type="Animation" id="celebrate"]
+resource_name = "celebrate"
+length = 1.6
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 2
+tracks/0/keys = {"times": PackedFloat32Array(0.0, 0.4, 0.8, 1.2000000000000002, 1.6), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector2(0, 0), Vector2(0, -12), Vector2(0, 0), Vector2(0, -6), Vector2(0, 0)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:rotation")
+tracks/1/interp = 2
+tracks/1/keys = {"times": PackedFloat32Array(0.0, 0.4, 0.8, 1.2000000000000002, 1.6), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [0.0, -0.017453292519943295, 0.0, -0.008726646259971648, 0.0]}
+
+[sub_resource type="Animation" id="carry"]
+resource_name = "carry"
+length = 1.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 2
+tracks/0/keys = {"times": PackedFloat32Array(0.0, 0.45, 0.9, 1.35, 1.8), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector2(0, -3), Vector2(0, -4), Vector2(0, -3), Vector2(0, -2), Vector2(0, -3)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:rotation")
+tracks/1/interp = 2
+tracks/1/keys = {"times": PackedFloat32Array(0.0, 0.45, 0.9, 1.35, 1.8), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [-0.010471975511965976, -0.015707963267948967, -0.010471975511965976, -0.005235987755982988, -0.010471975511965976]}
+
+[resource]
+_data = {"rest": SubResource("rest"), "curious": SubResource("curious"), "sleepy": SubResource("sleepy"), "celebrate": SubResource("celebrate"), "carry": SubResource("carry")}

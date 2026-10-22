@@ -62,9 +62,11 @@ func _ready() -> void:
 	timer.start()
 
 func set_visual_geometry(bounds: Rect2, hit_polygon: PackedVector2Array) -> void:
-	_window.size = Vector2i(bounds.end.ceil())
+	var next_size := Vector2i(bounds.end.ceil())
+	if _window.size != next_size:
+		_window.size = next_size
+		restore_visible_position(_window.position)
 	_window.mouse_passthrough_polygon = hit_polygon
-	restore_visible_position(_window.position)
 
 func usable_areas() -> Array[Rect2i]:
 	var areas: Array[Rect2i] = []
@@ -73,7 +75,9 @@ func usable_areas() -> Array[Rect2i]:
 	return areas
 
 func restore_visible_position(saved: Vector2i) -> void:
-	_window.position = Geometry.restore_position(saved, _window.size, usable_areas())
+	var constrained := Geometry.restore_position(saved, _window.size, usable_areas())
+	if _window.position != constrained:
+		_window.position = constrained
 
 func show_pet() -> void:
 	restore_visible_position(_window.position)
@@ -110,7 +114,8 @@ func _process(_delta: float) -> void:
 		_dragging = true
 		drag_started.emit()
 	if _dragging:
-		_window.position = _press_window + distance
+		# Clamp every drag frame, not just on release: the whole animated pet stays visible.
+		restore_visible_position(_press_window + distance)
 	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_finish_pointer()
 

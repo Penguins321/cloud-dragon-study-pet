@@ -1,13 +1,21 @@
 extends PanelContainer
 
 signal display_scale_requested(value: float)
+signal action_preview_requested(action: StringName)
 signal dismiss_requested
 signal hide_pet_requested
 signal quit_requested
 
 func _ready() -> void:
+	var outer := VBoxContainer.new()
+	add_child(outer)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer.add_child(scroll)
 	var box := VBoxContainer.new()
-	add_child(box)
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(box)
 	var title := Label.new()
 	title.text = "设置"
 	title.add_theme_font_size_override("font_size", 22)
@@ -28,7 +36,7 @@ func _ready() -> void:
 	var data_directory := OS.get_environment("CLOUD_DRAGON_DATA_DIR")
 	saved.load("user://preferences.cfg" if data_directory.is_empty() else data_directory.path_join("preferences.cfg"))
 	var selected: float = saved.get_value("pet", "scale", 1.0)
-	for entry in [["小", 0.75], ["中", 1.0], ["大", 1.25]]:
+	for entry in [["更小", 0.5], ["小", 0.75], ["中", 1.0], ["大", 1.25]]:
 		var button := Button.new()
 		button.text = entry[0]
 		button.toggle_mode = true
@@ -37,18 +45,29 @@ func _ready() -> void:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(func(): display_scale_requested.emit(entry[1]))
 		sizes.add_child(button)
+	var motion_label := Label.new()
+	motion_label.text = "动作预览"
+	box.add_child(motion_label)
+	var motions := HBoxContainer.new()
+	box.add_child(motions)
+	for entry in [["悬浮", &"idle"], ["好奇", &"curious"], ["休息", &"sleepy"], ["庆祝", &"celebrate"]]:
+		var button := Button.new()
+		button.text = entry[0]
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(func(): action_preview_requested.emit(entry[1]))
+		motions.add_child(button)
 	for text in ["分享清单（待产品化）", "备份与恢复（待产品化）"]:
 		var button := Button.new()
 		button.text = text
 		button.disabled = true
 		box.add_child(button)
 	var note := Label.new()
-	note.text = "本地保存，无需账号\n当前为交互原型，角色动作尚未定稿。"
+	note.text = "本地保存，无需账号\n已支持轻微悬浮与倾斜，更多姿态制作中。"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_font_size_override("font_size", 14)
 	box.add_child(note)
 	var footer := HBoxContainer.new()
-	box.add_child(footer)
+	outer.add_child(footer)
 	for entry in [["收起", dismiss_requested], ["隐藏宠物", hide_pet_requested], ["退出", quit_requested]]:
 		var button := Button.new()
 		button.text = entry[0]

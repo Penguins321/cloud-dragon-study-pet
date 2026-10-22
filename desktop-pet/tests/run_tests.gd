@@ -18,6 +18,8 @@ func run() -> void:
 	check(geometry.restore_position(Vector2i(4000, 3000), Vector2i(500, 260), areas) == Vector2i(1420, 780), "offscreen pet returns inside desktop")
 	check(geometry.restore_position(Vector2i(200, 300), Vector2i(500, 260), areas) == Vector2i(200, 300), "visible pet keeps its placement")
 	check(geometry.restore_position(Vector2i(-490, 100), Vector2i(500, 260), areas) == Vector2i(0, 100), "almost hidden pet is recovered fully")
+	check(geometry.restore_position(Vector2i(-20000, -20000), Vector2i(500, 318), areas) == Vector2i.ZERO, "drag target clamps at top and left before release")
+	check(geometry.restore_position(Vector2i(20000, 20000), Vector2i(500, 318), areas) == Vector2i(1420, 722), "drag target keeps complete motion bounds above taskbar")
 	check(geometry.place_panel(Rect2i(0, 700, 500, 280), Vector2i(410, 610), areas) == Vector2i(516, 370), "left-edge pet opens panel on free right side")
 	check(geometry.place_panel(Rect2i(1420, 700, 500, 280), Vector2i(410, 610), areas) == Vector2i(994, 370), "right-edge pet opens panel on free left side")
 	var body := PackedVector2Array([Vector2(0, 100), Vector2(100, 100), Vector2(100, 200), Vector2(0, 200)])
@@ -40,6 +42,9 @@ func run() -> void:
 	load("res://tests/test_study.gd").run_store(check)
 	await load("res://tests/test_ui.gd").run(self, check)
 	check(load("res://main.gd").can_instantiate(), "application composition compiles")
+	await load("res://tests/test_coverage.gd").run(self, check)
+	await load("res://tests/test_motion.gd").run(self, check)
+	await load("res://tests/test_motion_reuse.gd").run(self, check)
 	print("%d checks, %d failures" % [checks, failures.size()])
 	if failures.is_empty():
 		print("ALL CHECKS PASSED")

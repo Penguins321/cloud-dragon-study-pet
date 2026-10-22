@@ -7,3 +7,5 @@ extends Resource
 @export var hit_polygon := PackedVector2Array()
 @export var bubble_anchor := Vector2(360, 0)
 @export var player_path: NodePath = ^"AnimationPlayer"
+@export var render_texture: Texture2D
+@export var render_rect := Rect2()

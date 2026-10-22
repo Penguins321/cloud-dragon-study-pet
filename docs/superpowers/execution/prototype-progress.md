@@ -31,3 +31,18 @@
 - Deferred minors: none。
 - 工具限制：Windows Computer Use 应用授权超时，未继续执行输入；不把程序化信号测试写成鼠标测试。详见 desktop-pet/docs/verification.md。
 - Ruling: 非Git工作区无分支可合并，保留工作区，不展示无意义的合并/PR菜单；代价是暂无版本控制，未来由用户选择初始化。
+
+## v0.2 增量：裁剪、动作、复用与跨电脑交接
+
+- 用户授权上传后初始化 Git，首次原型提交 fe093d6，推送到 Penguins321/cloud-dragon-study-pet，API 核验 private=true。以上“无 Git”等条目为早期历史，不代表当前状态。
+- Windows 原生输入区域同时裁剪画面。源图采样回归 RED 3,473 个漏点 → alpha 轮廓、独立点包含判据 → GREEN；四档缩放和五种动作的取整区域、最终组合区域与包围框通过。
+- 新增 50% 档；设置增加动作预览后截图暴露底部挤出，改为滚动主体与固定底部按钮。
+- 用户要求拖动中不出屏幕：每一帧夹取完整窗口至工作区；固定包围框覆盖全部动作幅度，松手不再是唯一夹取时机。
+- 动作 RED 5 failures → 根节点悬浮、轻倾、休息、庆祝、拖动反馈 → GREEN。曲线平滑插值，0.25 秒过渡，隐藏暂停；不对未拆层图进行局部扭曲。
+- 实测暴露严重性能问题：7,270 点两两连接，约 1.65 FPS。改显示尺度遮罩与简化、线性零宽桥、半像素阈值更新原生区，头尾 / 须 / 四肢采样仍通过。最终一次生产配置平均 56.28 FPS / P95 20.23 ms / 最大 152.64 ms；偶发长帧作为未解决限制记录，不宣称稳定 60 FPS。
+- 动作复用 RED 共享库缺失 → 提取 pet/motions/cloud_dragon_float_v1.tres → GREEN。换色测试证明同一库与庆祝动作保留；动作目录归纳关键帧、坐标、触发、优先级、过渡及复用边界。最终全套 100/100。
+- 新姿态 imagegen 结构 / 外观对照图、完整提示词与审阅限制归档到 assets/cloud-dragon/poses；未替换运行素材，待用户审阅与统一关节母版。
+- 根目录 HANDOFF.md 与 setup-dev.ps1 / scripts/bootstrap-godot.py 提供固定工具版本和新电脑入口。已在当前电脑验证复用下载、哈希和项目导入；未假称在另一台电脑全新联网运行过。Python launcher 失效回退和 Windows Store alias 情况通过解释器探测处理，离线方式明确需要原 ZIP。
+- 源码实际 OpenGL 与 Windows Validation 烟雾检查通过。渲染截图不等于原生裁剪截图，实际鼠标、多屏与 DPI 限制保留。
+- 旧版 EXE 正在运行导致覆盖失败，保留用户进程与数据，改输出 CloudDragonPrototype-v0.2.exe；未强制退出用户实例。
+- 最后独立只读审查：无新 Important 代码问题，更新过时验证文档后交接。开源项目调研另存 docs/research/desktop-pet-projects.md，仅参考一手资料，无第三方代码或美术复用。

@@ -24,4 +24,4 @@ environment/defaults/default_clear_color=Color(0,0,0,0)
 gdscript/warnings/untyped_declaration=0
 
 [application/run]
-max_fps=30
+max_fps=60

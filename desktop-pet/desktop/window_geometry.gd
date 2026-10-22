@@ -38,19 +38,16 @@ static func combine_input_regions(body: PackedVector2Array, bubble: PackedVector
 	if bubble.is_empty():
 		return body.duplicate()
 	var nearest_body := 0
-	var nearest_bubble := 0
 	var distance := INF
 	for i in body.size():
-		for j in bubble.size():
-			var candidate := body[i].distance_squared_to(bubble[j])
-			if candidate < distance:
-				distance = candidate
-				nearest_body = i
-				nearest_bubble = j
+		var candidate := body[i].distance_squared_to(bubble[0])
+		if candidate < distance:
+			distance = candidate
+			nearest_body = i
 	var result := PackedVector2Array()
 	result.append(body[nearest_body])
 	for offset in bubble.size() + 1:
-		result.append(bubble[(nearest_bubble + offset) % bubble.size()])
+		result.append(bubble[offset % bubble.size()])
 	for offset in body.size() + 1:
 		result.append(body[(nearest_body + offset) % body.size()])
 	return result

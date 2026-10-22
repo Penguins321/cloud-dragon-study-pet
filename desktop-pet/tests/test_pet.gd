@@ -68,7 +68,7 @@ static func run(tree: SceneTree, check: Callable) -> void:
 	view.play_action(&"dragging")
 	await tree.create_timer(0.35).timeout
 	check.call(view.current_action == &"dragging", "old actor completion cannot overwrite new skin action")
-	for value in [0.75, 1.0, 1.25]:
+	for value in [0.5, 0.75, 1.0, 1.25]:
 		view.set_display_scale(value)
 		var geometry: Dictionary = view.get_visual_geometry()
 		check.call(geometry.get("bubble_anchor") == Vector2(80 * value, 0), "bubble anchor follows scale %s" % value)
