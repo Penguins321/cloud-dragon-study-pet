@@ -8,8 +8,8 @@
 script = ExtResource("1")
 id = &"cloud_dragon"
 scene = ExtResource("2")
-action_map = {&"idle": &"rest", &"curious": &"curious", &"sleepy": &"sleepy", &"celebrate": &"celebrate", &"dragging": &"carry"}
-visual_bounds = Rect2(-12, -28, 468, 224)
+action_map = {&"idle": &"float", &"swim": &"swim", &"look": &"look", &"curious": &"look", &"stretch": &"stretch", &"rest": &"rest", &"sleepy": &"rest", &"celebrate": &"celebrate", &"dragging": &"carry"}
+visual_bounds = Rect2(-45, -90, 535, 345)
 hit_polygon = PackedVector2Array(0, 35, 24, 15, 46, 70, 155, 65, 230, 95, 300, 80, 328, 20, 368, 0, 402, 10, 440, 42, 438, 96, 400, 112, 400, 170, 370, 180, 340, 142, 240, 136, 216, 172, 180, 175, 157, 135, 35, 120, 6, 75)
 bubble_anchor = Vector2(350, 0)
 render_texture = ExtResource("3")

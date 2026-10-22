@@ -13,6 +13,8 @@ var _pressed := false
 var _dragging := false
 var _press_mouse := Vector2i.ZERO
 var _press_window := Vector2i.ZERO
+var last_click_position := Vector2(-1000, -1000)
+var _press_local := Vector2.ZERO
 var _tray: StatusIndicator
 var _menu: PopupMenu
 
@@ -25,6 +27,10 @@ func _ready() -> void:
 	_window.always_on_top = false
 	_window.unresizable = true
 	_window.unfocusable = true
+	# The desktop compositor presents this transparent window; avoid a second GL
+	# swap wait falling to half refresh. main.gd retains the 60 FPS engine cap.
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED, _window.get_window_id())
 	_window.close_requested.connect(hide_pet)
 	set_process(false)
 	if DisplayServer.has_feature(DisplayServer.FEATURE_STATUS_INDICATOR):
@@ -100,9 +106,10 @@ func _input(event: InputEvent) -> void:
 				_dragging = false
 				_press_mouse = DisplayServer.mouse_get_position()
 				_press_window = _window.position
+				_press_local = event.position
 				set_process(true)
 			else:
-				_finish_pointer()
+				_finish_pointer(event.position)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			edit_requested.emit()
 
@@ -119,15 +126,21 @@ func _process(_delta: float) -> void:
 	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_finish_pointer()
 
-func _finish_pointer() -> void:
+func _finish_pointer(release_position: Variant = null) -> void:
 	if not _pressed:
 		return
+	# A complete drag can happen between two render frames. It must not become a click.
+	if not _dragging and release_position is Vector2 and release_position.distance_to(_press_local) >= 8.0:
+		_dragging = true
+		drag_started.emit()
+		restore_visible_position(_press_window + Vector2i(release_position - _press_local))
 	_pressed = false
 	set_process(false)
 	if _dragging:
 		restore_visible_position(_window.position)
 		drag_finished.emit(_window.position)
 	else:
+		last_click_position = _press_local
 		pet_clicked.emit()
 	_dragging = false
 

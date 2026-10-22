@@ -42,6 +42,7 @@ static func run(tree: SceneTree, check: Callable) -> void:
 			var duration: float = view.player.get_animation(view.skin.action_map[action]).length
 			for step in range(5):
 				view.player.seek(duration * step / 5.0, true)
+				view.actor.phase = TAU * step / 5.0
 				geometry = view.get_visual_geometry()
 				var quantized: Array[PackedVector2Array] = []
 				for outline in geometry.render_polygons:
@@ -50,7 +51,7 @@ static func run(tree: SceneTree, check: Callable) -> void:
 						native.append(point.floor())
 					quantized.append(native)
 				for point in samples:
-					var transformed: Vector2 = (view.actor.transform * point) * size
+					var transformed: Vector2 = view.map_skin_point(point)
 					if not geometry.bounds.has_point(transformed):
 						outside_bounds += 1
 					var covered := false

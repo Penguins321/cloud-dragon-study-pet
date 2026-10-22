@@ -65,11 +65,8 @@ func _ready() -> void:
 	settings.hide_pet_requested.connect(func(): settings_window.hide(); panel_window.hide(); desktop.hide_pet())
 	settings.quit_requested.connect(_quit)
 	settings.display_scale_requested.connect(_set_scale)
-	settings.action_preview_requested.connect(func(action: StringName):
-		pet.play_action(&"idle")
-		pet.play_action(action)
-	)
-	desktop.pet_clicked.connect(_toggle_plan)
+	settings.action_preview_requested.connect(pet.select_action)
+	desktop.pet_clicked.connect(_handle_pet_click)
 	desktop.edit_requested.connect(_show_plan)
 	desktop.quit_requested.connect(_quit)
 	desktop.pet_visibility_changed.connect(func(active: bool):
@@ -152,7 +149,7 @@ func _render() -> void:
 		if task.id == plan.data.current_id:
 			current = task
 	if current.is_empty():
-		bubble_label.text = "点击云龙\n添加学习目标"
+		bubble_label.text = "点击气泡\n添加学习目标"
 	else:
 		bubble_label.text = ("已完成\n" if current.completed else "当前任务\n") + current.title
 	_update_geometry()
@@ -201,6 +198,12 @@ func _toggle_plan() -> void:
 		panel_window.hide()
 	else:
 		_show_plan()
+
+func _handle_pet_click() -> void:
+	if bubble.get_rect().has_point(desktop.last_click_position):
+		_toggle_plan()
+	else:
+		pet.cycle_action()
 
 func _show_plan() -> void:
 	desktop.show_pet()

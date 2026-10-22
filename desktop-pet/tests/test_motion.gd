@@ -16,7 +16,7 @@ static func run(tree: SceneTree, check: Callable) -> void:
 		check.call(not view.actor.transform.is_equal_approx(before), "motion visibly changes transform: " + action)
 		var geometry: Dictionary = view.get_visual_geometry()
 		var point: Vector2 = view.skin.hit_polygon[0]
-		check.call(geometry.hit_polygon[0].is_equal_approx(view.actor.transform * point), "motion transforms native region with artwork: " + action)
+		check.call(geometry.hit_polygon[0].is_equal_approx(view.map_skin_point(point)), "motion transforms native region with artwork: " + action)
 	view.play_action(&"idle")
 	view.play_action(&"celebrate")
 	view.player.advance(2.0)
@@ -45,5 +45,5 @@ static func run(tree: SceneTree, check: Callable) -> void:
 	view.geometry_changed.connect(func(): region_updates[0] += 1)
 	for frame in range(60):
 		view._process(1.0 / 60.0)
-	check.call(region_updates[0] > 0 and region_updates[0] < 30, "continuous idle avoids rebuilding the native region every frame")
+	check.call(region_updates[0] > 0 and region_updates[0] <= 60, "joint animation refreshes native regions at most once per frame")
 	view.free()

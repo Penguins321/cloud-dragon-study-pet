@@ -9,8 +9,10 @@ var player: AnimationPlayer
 var _generation := 0
 var _enabled := true
 var _render_polygons: Array[PackedVector2Array] = []
-var _region_transform := Transform2D.IDENTITY
-const PRIORITY := {&"idle": 0, &"sleepy": 1, &"curious": 2, &"celebrate": 3, &"dragging": 4}
+var _region_samples := PackedVector2Array()
+var _interaction_index := -1
+const CLICK_ACTIONS: Array[StringName] = [&"swim", &"look", &"stretch", &"rest", &"celebrate"]
+const PRIORITY := {&"idle": 0, &"swim": 1, &"rest": 1, &"sleepy": 1, &"curious": 2, &"look": 2, &"stretch": 2, &"celebrate": 3, &"dragging": 4}
 
 func apply_skin(candidate: Resource) -> Error:
 	if candidate == null or candidate.get_script() != preload("res://pet/pet_skin.gd"):
@@ -33,8 +35,12 @@ func apply_skin(candidate: Resource) -> Error:
 	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	add_child(actor)
 	_render_polygons = _texture_coverage(candidate)
+	if actor.has_method("prepare_outline"):
+		for index in _render_polygons.size():
+			_render_polygons[index] = actor.prepare_outline(_render_polygons[index])
 	player.animation_finished.connect(_on_finished.bind(_generation))
 	_activate(&"idle")
+	_interaction_index = -1
 	_notify_geometry_changed()
 	return OK
 
@@ -42,12 +48,13 @@ func _process(delta: float) -> void:
 	if not _enabled or not is_instance_valid(player):
 		return
 	player.advance(delta)
-	var current := _scaled_actor_transform()
-	var bounds: Rect2 = skin.visual_bounds
+	if actor.has_method("advance_pose"):
+		actor.advance_pose(delta)
+	var samples := _get_region_samples()
 	# Rendering remains continuous. Rebuild the expensive native region only after
 	# half a screen pixel of motion; the alpha padding safely covers this small lag.
-	for point in [bounds.position, bounds.end, Vector2(bounds.position.x, bounds.end.y), Vector2(bounds.end.x, bounds.position.y)]:
-		if (current * point).distance_squared_to(_region_transform * point) >= 0.25:
+	for index in samples.size():
+		if samples.size() != _region_samples.size() or samples[index].distance_squared_to(_region_samples[index]) >= 0.25:
 			_notify_geometry_changed()
 			break
 
@@ -56,8 +63,37 @@ func _scaled_actor_transform() -> Transform2D:
 
 func _notify_geometry_changed() -> void:
 	if is_instance_valid(actor):
-		_region_transform = _scaled_actor_transform()
+		_region_samples = _get_region_samples()
 	geometry_changed.emit()
+
+func _get_region_samples() -> PackedVector2Array:
+	var points := PackedVector2Array()
+	if actor.has_method("region_sample_points"):
+		points = actor.region_sample_points()
+	else:
+		var bounds: Rect2 = skin.visual_bounds
+		points = PackedVector2Array([bounds.position, bounds.end, Vector2(bounds.position.x, bounds.end.y), Vector2(bounds.end.x, bounds.position.y)])
+	return _scaled_actor_transform() * points
+
+func select_action(action: StringName) -> void:
+	if skin == null or not _enabled or current_action == &"dragging":
+		return
+	var selected: StringName = action if skin.action_map.has(action) else &"idle"
+	var index := CLICK_ACTIONS.find(selected)
+	if index >= 0:
+		_interaction_index = index
+	_activate(selected)
+
+func cycle_action() -> StringName:
+	if skin == null or not _enabled or current_action == &"dragging":
+		return current_action
+	for attempt in CLICK_ACTIONS.size():
+		_interaction_index = (_interaction_index + 1) % CLICK_ACTIONS.size()
+		var action := CLICK_ACTIONS[_interaction_index]
+		if skin.action_map.has(action):
+			select_action(action)
+			break
+	return current_action
 
 func play_action(action: StringName) -> void:
 	if skin == null:
@@ -99,14 +135,16 @@ func set_display_scale(value: float) -> void:
 func get_visual_geometry() -> Dictionary:
 	if skin == null:
 		return {}
+	if actor.has_method("sync_pose"):
+		actor.sync_pose()
 	var polygon := PackedVector2Array()
 	for point in skin.hit_polygon:
-		polygon.append((actor.transform * point) * scale)
+		polygon.append(map_skin_point(point))
 	var render_polygons: Array[PackedVector2Array] = []
 	for outline in _render_polygons:
 		var transformed := PackedVector2Array()
 		for point in outline:
-			transformed.append((actor.transform * point) * scale)
+			transformed.append(map_skin_point(point))
 		render_polygons.append(transformed)
 	return {
 		"bounds": Rect2(skin.visual_bounds.position * scale, skin.visual_bounds.size * scale),
@@ -114,6 +152,10 @@ func get_visual_geometry() -> Dictionary:
 		"bubble_anchor": skin.bubble_anchor * scale,
 		"render_polygons": render_polygons
 	}
+
+func map_skin_point(point: Vector2) -> Vector2:
+	var deformed: Vector2 = actor.deform_point(point) if actor.has_method("deform_point") else point
+	return (actor.transform * deformed) * scale
 
 func _texture_coverage(candidate: Resource) -> Array[PackedVector2Array]:
 	var result: Array[PackedVector2Array] = []

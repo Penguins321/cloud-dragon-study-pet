@@ -1,7 +1,7 @@
 extends RefCounted
 
 static func run(tree: SceneTree, check: Callable) -> void:
-	var path := "res://pet/motions/cloud_dragon_float_v1.tres"
+	var path := "res://pet/motions/cloud_dragon_flexible_v2.tres"
 	var available := ResourceLoader.exists(path)
 	check.call(available, "cloud dragon motion library is archived separately from skin colors")
 	if not available:

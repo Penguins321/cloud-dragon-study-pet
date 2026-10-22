@@ -50,10 +50,12 @@ func _ready() -> void:
 	box.add_child(motion_label)
 	var motions := HBoxContainer.new()
 	box.add_child(motions)
-	for entry in [["悬浮", &"idle"], ["好奇", &"curious"], ["休息", &"sleepy"], ["庆祝", &"celebrate"]]:
+	for entry in [["游动", &"swim"], ["抬头", &"look"], ["舒展", &"stretch"], ["收拢", &"rest"], ["欢腾", &"celebrate"]]:
 		var button := Button.new()
 		button.text = entry[0]
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size", 14)
+		button.add_theme_constant_override("outline_size", 0)
 		button.pressed.connect(func(): action_preview_requested.emit(entry[1]))
 		motions.add_child(button)
 	for text in ["分享清单（待产品化）", "备份与恢复（待产品化）"]:
@@ -62,7 +64,7 @@ func _ready() -> void:
 		button.disabled = true
 		box.add_child(button)
 	var note := Label.new()
-	note.text = "本地保存，无需账号\n已支持轻微悬浮与倾斜，更多姿态制作中。"
+	note.text = "左键云龙切换动作，按住拖动\n点击气泡或右键云龙打开学习计划。"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_font_size_override("font_size", 14)
 	box.add_child(note)

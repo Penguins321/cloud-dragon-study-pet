@@ -29,12 +29,12 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 先读 [需求规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-design.md)、[界面规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-ui-prototype.md)、[项目操作与模块说明](desktop-pet/README.md)，再看 [实际验证范围](desktop-pet/docs/verification.md)。既有实施记录在 [执行记录](docs/superpowers/execution/prototype-progress.md)，保留历史，不把早期“未建 Git”等描述当成当前状态。
 
-本轮重点：修复 Windows 原生区域裁掉 PNG；增加 50% 缩放；已有外观接入整体悬浮、轻倾、休息、庆祝和拖动反馈。确切检查结果以验证记录为准。所有动作先按 [动作拆解](desktop-pet/docs/motion-design.md) 设计，不能直接生成一组外观相似但身体结构不同的帧。
+当前 v0.3：左键云龙循环动作，气泡 / 右键打开计划；18 关节 GPU 网格带动身体、尾巴和四肢，显示轮廓使用相同网格变形。保留 50% 缩放和逐帧拖动边界。确切检查结果以验证记录为准。所有动作先按 [v2 结构拆解](desktop-pet/docs/rig-v2-design.md) 设计，不能直接生成一组外观相似但身体结构不同的帧。
 
 下一阶段顺序：
 
 1. 在真实桌面检查 50% / 75% / 100% / 125% 下的尾焰、须、四肢完整性、点击穿透、拖动和托盘恢复；再检查 150% DPI、多屏与 Windows 10。
-2. 画舒展、收拢休息、抬头的无装饰结构稿与对应外观，逐一确认中心线、肩、骨盆、尾根与四肢连接，再制作分层图和正式动画。当前整身变换不能替代这些姿态。
+2. 在已实现的 v2 关节绑定上继续微调动作。若需要闭眼、转背、翻身、近远肢换遮挡或盘绕，先补分层 / 多视角美术并重新校验；不要退回 v1 整图平移，也不要把待审生成候选直接切帧。
 3. 正式产品化：安装 / 卸载与可选开机自启动、清单导入导出、备份恢复界面、发行包与资源许可核对。这些还没实现，不能向朋友承诺已支持。
 
 ## 修改入口与边界
@@ -45,17 +45,17 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 | 保存与备份 | `desktop-pet/study/plan_store.gd`；先保存候选，再更新 UI 与庆祝 |
 | 宠物语义动作 / 优先级 / 轮廓变换 | `desktop-pet/pet/pet_view.gd` |
 | 云龙外观、动画、尺寸范围 | `desktop-pet/pet/skins/cloud_dragon/`；新增皮肤不修改学习模型 |
-| 换颜色保留动作 | `desktop-pet/pet/motions/cloud_dragon_float_v1.tres` 共享动画库；规则与关键帧说明见 `desktop-pet/docs/action-catalog.md` |
+| 换颜色保留动作 | `desktop-pet/pet/motions/cloud_dragon_flexible_v2.tres` + `pet/skins/cloud_dragon/rig.gd`；规则见 `desktop-pet/docs/action-catalog-v2.md`，v1 保留归档 |
 | 透明原生窗口、拖动、托盘、多屏恢复 | `desktop-pet/desktop/pet_window.gd`、`window_geometry.gd` |
 | 气泡与面板协调 | `desktop-pet/main.gd` |
 | 普通控件样式与设置 | `desktop-pet/ui/`，Theme 与角色皮肤独立 |
 | 参考图、设计图与资源来源 | `assets/cloud-dragon/`；不要覆盖原图 |
 
-关键坑：Windows 的 `mouse_passthrough_polygon` 同时影响显示裁剪，不能用粗略点击多边形替代完整显示区域。当前用 PNG alpha 生成轮廓，预留取整余量，随整身变换同步；若以后身体局部变形或逐帧更换贴图，必须扩展轮廓策略并加回归检查。Godot 主窗口用最小化实现托盘隐藏，不能直接 hide。导出模板不执行外部 `--script` 烟雾入口，所以使用独立 `Windows Validation` 预设。
+关键坑：Windows 的 `mouse_passthrough_polygon` 同时影响显示裁剪，不能用粗略点击多边形替代完整显示区域。当前用 PNG alpha 生成轮廓并沿网格边界细分，使用与 GPU 网格一致的骨骼变换和三角插值，预留取整余量；以后改骨架 / 网格或逐帧换图仍须扩展并验证轮廓。Godot 主窗口用最小化实现托盘隐藏，不能直接 hide。导出模板不执行外部 `--script` 烟雾入口，所以使用独立 `Windows Validation` 预设。
 
 ## 验证和交付
 
-`test-prototype.ps1` 使用隔离测试目录，失败就停下处理；不要删断言来换取通过。真实渲染检查入口 `desktop-pet/tests/smoke.gd`，运行示例见验证记录。`build-prototype.ps1` 输出 `desktop-pet/build/CloudDragonPrototype-v0.2.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。
+`test-prototype.ps1` 使用隔离测试目录，失败就停下处理；不要删断言来换取通过。真实渲染检查入口 `desktop-pet/tests/smoke.gd`，运行示例见验证记录。`build-prototype.ps1` 输出 `desktop-pet/build/CloudDragonPrototype-v0.3.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。
 
 目前没有安装器、自启动或自动更新。EXE 没签名，分享时附带引擎及第三方许可文件并说明这是原型。项目本身尚未决定对外开源许可证；私有仓库不代表第三方素材可以任意再分发。
 

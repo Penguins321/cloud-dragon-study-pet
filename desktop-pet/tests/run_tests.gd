@@ -31,8 +31,14 @@ func run() -> void:
 	var Guard = load("res://desktop/single_instance.gd")
 	var first_guard = Guard.new()
 	var second_guard = Guard.new()
-	var scope := "isolated_test_" + str(OS.get_process_id())
-	check(first_guard.acquire(scope), "first process guard acquires scope")
+	var scope := ""
+	var acquired := false
+	for attempt in range(20):
+		scope = "isolated_test_%s_%s_%s" % [OS.get_process_id(), Time.get_ticks_usec(), attempt]
+		if first_guard.acquire(scope):
+			acquired = true
+			break
+	check(acquired, "first process guard acquires an available isolated scope")
 	check(not second_guard.acquire(scope), "second instance cannot write same scope")
 	first_guard.release()
 	check(second_guard.acquire(scope), "released instance scope can restart")
@@ -45,6 +51,7 @@ func run() -> void:
 	await load("res://tests/test_coverage.gd").run(self, check)
 	await load("res://tests/test_motion.gd").run(self, check)
 	await load("res://tests/test_motion_reuse.gd").run(self, check)
+	await load("res://tests/test_flexible.gd").run(self, check)
 	print("%d checks, %d failures" % [checks, failures.size()])
 	if failures.is_empty():
 		print("ALL CHECKS PASSED")
