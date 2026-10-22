@@ -29,14 +29,14 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 先读 [需求规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-design.md)、[界面规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-ui-prototype.md)、[项目操作与模块说明](desktop-pet/README.md)，再看 [实际验证范围](desktop-pet/docs/verification.md)。既有实施记录在 [执行记录](docs/superpowers/execution/prototype-progress.md)，保留历史，不把早期“未建 Git”等描述当成当前状态。
 
-当前 v0.4：旧云龙运行素材有 36 个控制关节、独立双须 / 鬃毛、五段尾部与分束尾焰，轮廓使用相同网格变形。保留左键循环动作、气泡 / 右键计划、50% 缩放和逐帧拖动边界。当前规则见 [v3 风动手册](desktop-pet/docs/wind-and-tail-v3.md)，确切测试范围见验证记录。
+当前 v0.5：默认形象已替换 **C 玉骨天龙**，46 个控制关节、新比例权重、刚性头骨 / 骨角、独立眨眼、五组身体软鬃、双须、五段尾部与分束尾焰。默认朝左，左键六动作循环的最后一项为吐息；右键弹出菜单。今日目标不常驻，只在左上 45° 的青玉灰白云雾中短暂显示，点击雾幕可打开计划。支持 50% 缩放和逐帧拖动边界。当前规则见 [玉骨天龙手册](desktop-pet/docs/jade-dragon-v1.md)，确切测试范围见验证记录。旧云龙和历史动作手册仍保留。
 
-用户新选择 **C 玉骨天龙**，要求清冷古雅、线条利落、减少亲和感；已归档[细化设计与提示词](assets/cloud-dragon/redesigns/2026-10-22-jade-dragon/README.md)，尚未接入运行皮肤。最新要求是**全身细致的力传导和动作**，不限尾巴；必须先读[全身动作规格](docs/superpowers/specs/2026-10-22-jade-dragon-whole-body-motion.md)。当前周期风动基线不代表已完成整体动力学、动作阶段、惯性收势或新素材分层。
+玉骨天龙的[细化设计、透明运行素材与闭眼提示词](assets/cloud-dragon/redesigns/2026-10-22-jade-dragon/README.md)均已归档；当前运行素材仍是整体贴图的受约束网格变形，未完成全身独立拆层。用户要求**全身细致的力传导和动作**，不限尾巴；必须先读[全身动作规格](docs/superpowers/specs/2026-10-22-jade-dragon-whole-body-motion.md)。当前周期风动和局部软鬃不代表已完成整体动力学、惯性求解、转背遮挡交换或所有复杂动作。
 
 下一阶段顺序：
 
 1. 在真实桌面检查 50% / 75% / 100% / 125% 下的尾焰、须、四肢完整性、点击穿透、拖动和托盘恢复；再检查 150% DPI、多屏与 Windows 10。
-2. 按最新全身动作规格推进玉骨天龙：先校验结构与拆层美术，再建立主驱动、关节约束、分区惯性和动作阶段。新图比例不同，必须重新绑定；换色复用动作定义与动力参数。先完成一次“蓄势—推进—滑翔—收势”的完整动作，逐部位检查力传递，再拓展其他动作。
+2. 按全身动作规格继续：现有玉骨侧面重绑定已完成，不必重复替换形象；下一步是补画拆层、独立下颌、主驱动力、关节约束、分区惯性和更完整动作阶段。先实现一次“蓄势—推进—滑翔—收势”，逐部位检查力传递和遮挡，再拓展转身等姿态。仅换色继续复用已有动作与参数。
 3. 正式产品化：安装 / 卸载与可选开机自启动、清单导入导出、备份恢复界面、发行包与资源许可核对。这些还没实现，不能向朋友承诺已支持。
 
 ## 修改入口与边界
@@ -46,18 +46,19 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 | 学习目标、任务顺序与完成规则 | `desktop-pet/study/study_plan.gd`；完成不自动推进，日期变化也不推进 |
 | 保存与备份 | `desktop-pet/study/plan_store.gd`；先保存候选，再更新 UI 与庆祝 |
 | 宠物语义动作 / 优先级 / 轮廓变换 | `desktop-pet/pet/pet_view.gd` |
-| 云龙外观、动画、尺寸范围 | `desktop-pet/pet/skins/cloud_dragon/`；新增皮肤不修改学习模型 |
-| 换颜色保留动作 | `desktop-pet/pet/motions/cloud_dragon_flexible_v2.tres` + `pet/skins/cloud_dragon/rig.gd` + `flame.gdshader`；当前规则见 `desktop-pet/docs/wind-and-tail-v3.md` |
+| 云龙外观、权重、头部、鬃毛 | `desktop-pet/pet/skins/jade_dragon/`；继承旧皮肤的共享驱动，新比例不修改学习模型 |
+| 换颜色保留动作 | `desktop-pet/pet/motions/cloud_dragon_flexible_v2.tres` + `jade_interactions_v1.tres`；绑定与材质见 `desktop-pet/docs/jade-dragon-v1.md` |
+| 云雾喷流、雾幕、目标文字 | `desktop-pet/pet/effects/goal_breath.gd`、`cloud_mist.gdshader`；只接收显示数据，绝不写学习计划 |
 | 透明原生窗口、拖动、托盘、多屏恢复 | `desktop-pet/desktop/pet_window.gd`、`window_geometry.gd` |
-| 气泡与面板协调 | `desktop-pet/main.gd` |
+| 当前目标、吐息与面板协调 | `desktop-pet/main.gd`；默认皮肤也是在此指定 |
 | 普通控件样式与设置 | `desktop-pet/ui/`，Theme 与角色皮肤独立 |
 | 参考图、设计图与资源来源 | `assets/cloud-dragon/`；不要覆盖原图 |
 
-关键坑：Windows 的 `mouse_passthrough_polygon` 同时影响显示裁剪，不能用粗略点击多边形替代完整显示区域。当前用 PNG alpha 生成轮廓并沿网格边界细分，使用与 GPU 网格一致的骨骼变换和三角插值，预留取整余量；以后改骨架 / 网格或逐帧换图仍须扩展并验证轮廓。Godot 主窗口用最小化实现托盘隐藏，不能直接 hide。导出模板不执行外部 `--script` 烟雾入口，所以使用独立 `Windows Validation` 预设。
+关键坑：Windows 的 `mouse_passthrough_polygon` 同时影响显示裁剪，不能用粗略点击多边形替代完整显示区域。当前用 PNG alpha 生成轮廓并沿网格边界细分，使用与 GPU 网格一致的骨骼变换和三角插值；身体与喷流 / 雾幕必须先并集，直接连接重叠多边形会产生 ALTERNATE 填充孔洞。布尔合并后的小数坐标会被原生取整，须保留屏幕坐标 2 像素扩张，并测吐息喷出 / 成雾 / 淡出阶段。固定包围框已包含效果空间，不要再加常驻目标卡。Godot 主窗口用最小化实现托盘隐藏，不能直接 hide。导出模板不执行外部 `--script` 烟雾入口，所以使用独立 `Windows Validation` 预设。
 
 ## 验证和交付
 
-`test-prototype.ps1` 使用隔离测试目录，失败就停下处理；不要删断言来换取通过。真实渲染检查入口 `desktop-pet/tests/smoke.gd`，运行示例见验证记录。`build-prototype.ps1` 输出 `desktop-pet/build/CloudDragonPrototype-v0.4.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。
+`test-prototype.ps1` 当前 178 项，使用隔离测试目录，失败就停下处理；不要删断言来换取通过。真实渲染检查入口 `desktop-pet/tests/smoke.gd`，运行示例见验证记录。`build-prototype.ps1` 输出 `desktop-pet/build/CloudDragonPrototype-v0.5.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。测试遇到实例端口碰撞应换新的隔离目录重试，不能强制绕过实例保护。
 
 目前没有安装器、自启动或自动更新。EXE 没签名，分享时附带引擎及第三方许可文件并说明这是原型。项目本身尚未决定对外开源许可证；私有仓库不代表第三方素材可以任意再分发。
 

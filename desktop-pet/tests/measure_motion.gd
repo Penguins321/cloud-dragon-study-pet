@@ -10,8 +10,12 @@ func run() -> void:
 		quit(1)
 		return
 	OS.set_environment("CLOUD_DRAGON_DATA_DIR", directory.path_join(str(Time.get_ticks_usec())))
-	root.add_child(load("res://main.tscn").instantiate())
+	var app = load("res://main.tscn").instantiate()
+	root.add_child(app)
 	await create_timer(3.0).timeout
+	var breath := OS.get_cmdline_user_args().has("--breath")
+	if breath:
+		app.pet.select_action(&"breath")
 	var samples: Array[float] = []
 	var previous := Time.get_ticks_usec()
 	for frame in range(360):
@@ -24,7 +28,7 @@ func run() -> void:
 		total += value
 	samples.sort()
 	print("ANIMATION_METRICS ", JSON.stringify({
-		"frames": samples.size(), "seconds": total / 1000.0,
+		"mode": "breath" if breath else "idle", "frames": samples.size(), "seconds": total / 1000.0,
 		"average_fps": 360000.0 / total,
 		"p95_frame_ms": samples[341], "maximum_frame_ms": samples[-1]
 	}))

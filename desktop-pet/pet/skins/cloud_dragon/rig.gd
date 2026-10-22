@@ -2,10 +2,10 @@ extends Node2D
 
 # Side-view bind pose: shoulder -> spine -> pelvis -> tail; neck and four limbs branch.
 # Coordinates, weights and animations are independent of texture color.
-const SIZE := Vector2(440.0, 178.86179)
+var SIZE := Vector2(440.0, 178.86179)
 const COLUMNS := 55
 const ROWS := 30
-const JOINTS := [
+var JOINTS := [
 	["Shoulder", -1, Vector2(331, 115)],
 	["SpineChest", 0, Vector2(280, 122)],
 	["SpineWaist", 1, Vector2(235, 102)],
@@ -43,6 +43,10 @@ const JOINTS := [
 	["TailInner", 4, Vector2(110, 127)],
 	["TailOuter", 5, Vector2(55, 113)]
 ]
+var limb_tips := [Vector2(370, 170), Vector2(391, 151), Vector2(145, 162), Vector2(204, 162)]
+var face_landmarks := [Vector2(385, 35), Vector2(397, 45)]
+var whisker_gain := 1.0
+var neck_gain := 1.0
 
 @export var swim_strength := 0.0
 @export var swim_speed := 2.0
@@ -229,7 +233,7 @@ func _paint_limbs(weights: PackedFloat32Array, point: Vector2, chain: Array) -> 
 	var scores := PackedFloat32Array()
 	scores.resize(JOINTS.size())
 	var total := body_score
-	var limbs := [[10, 11, Vector2(370, 170)], [12, 13, Vector2(391, 151)], [14, 15, Vector2(145, 162)], [16, 17, Vector2(204, 162)]]
+	var limbs := [[10, 11, limb_tips[0]], [12, 13, limb_tips[1]], [14, 15, limb_tips[2]], [16, 17, limb_tips[3]]]
 	for limb in limbs:
 		var upper: int = limb[0]
 		var lower: int = limb[1]
@@ -276,8 +280,8 @@ func sync_pose() -> void:
 		var lag := 1.8 + segment * 0.3
 		angles[tail_ids[segment]] = (amplitudes[segment] * sin(phase - lag) + 0.8 * sin(phase * 2.0 - lag - 0.4)) * swim + curls[segment] * curl
 	angles[7] = (3.0 * sin(phase - 3.5) + 1.5 * sin(phase * 2.0 - 1.2)) * swim
-	angles[8] = -10.0 * lift + 0.8 * sin(phase + 0.5) * swim
-	angles[9] = -7.0 * lift + 0.5 * sin(phase + 0.8) * swim
+	angles[8] = -10.0 * lift * neck_gain + 0.8 * sin(phase + 0.5) * swim
+	angles[9] = -7.0 * lift * neck_gain + 0.5 * sin(phase + 0.8) * swim
 	for side in range(2):
 		# Paired limbs share a stroke with a small delay; front/rear pairs alternate.
 		# This side-view mesh cannot exchange near/far occlusion as cutout layers could.
@@ -290,8 +294,8 @@ func sync_pose() -> void:
 	# Integer harmonics preserve both pose and velocity at the phase wrap.
 	for segment in range(3):
 		var lag := float(segment) * 0.65
-		angles[19 + segment] = (12.0 * sin(phase - lag) + 3.0 * sin(phase * 2.0 - lag - 0.8)) * swim
-		angles[23 + segment] = (7.0 * sin(phase - lag - 0.9) + 2.0 * sin(phase * 2.0 - lag - 1.4)) * swim
+		angles[19 + segment] = (12.0 * sin(phase - lag) + 3.0 * sin(phase * 2.0 - lag - 0.8)) * swim * whisker_gain
+		angles[23 + segment] = (7.0 * sin(phase - lag - 0.9) + 2.0 * sin(phase * 2.0 - lag - 1.4)) * swim * whisker_gain
 	angles[27] = (4.0 * sin(phase - 0.7) + 1.5 * sin(phase * 2.0 - 1.5)) * swim
 	angles[28] = (5.0 * sin(phase * 2.0 - 1.0) + 2.0 * sin(phase * 3.0)) * swim
 	angles[29] = (7.0 * sin(phase * 2.0 - 1.9) + 2.0 * sin(phase * 3.0 - 0.9)) * swim
@@ -299,6 +303,7 @@ func sync_pose() -> void:
 	angles[31] = 8.0 * sin(phase * 3.0 - 1.3) * swim
 	angles[32] = -4.0 * sin(phase * 2.0 - 0.6) * swim
 	angles[33] = 7.0 * sin(phase * 3.0 - 2.5) * swim
+	_secondary_angles(angles, swim)
 	_flame_material.set_shader_parameter("flow_phase", phase)
 	_flame_material.set_shader_parameter("strength", swim)
 	joint_globals.resize(bones.size())
@@ -313,6 +318,9 @@ func sync_pose() -> void:
 		joint_globals[index] = global_pose
 		skin_matrices[index] = global_pose * Transform2D(0.0, -bind)
 	_deformed_vertices.clear()
+
+func _secondary_angles(_angles: PackedFloat32Array, _strength: float) -> void:
+	pass
 
 func _vertex(index: int) -> Vector2:
 	if _deformed_vertices.has(index):

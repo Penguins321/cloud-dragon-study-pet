@@ -5,6 +5,8 @@ signal drag_started
 signal drag_finished(position: Vector2i)
 signal pet_visibility_changed(is_visible: bool)
 signal edit_requested
+signal goal_requested
+signal settings_requested
 signal quit_requested
 
 const Geometry = preload("res://desktop/window_geometry.gd")
@@ -33,6 +35,16 @@ func _ready() -> void:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED, _window.get_window_id())
 	_window.close_requested.connect(hide_pet)
 	set_process(false)
+	_menu = PopupMenu.new()
+	_menu.add_item("显示宠物", 0)
+	_menu.add_item("今日目标（吐息）", 4)
+	_menu.add_item("学习计划…", 1)
+	_menu.add_item("设置…", 5)
+	_menu.add_separator()
+	_menu.add_item("隐藏宠物", 2)
+	_menu.add_item("退出", 3)
+	add_child(_menu)
+	_menu.id_pressed.connect(_on_menu)
 	if DisplayServer.has_feature(DisplayServer.FEATURE_STATUS_INDICATOR):
 		_tray = StatusIndicator.new()
 		_tray.tooltip = "云龙学习搭子 · 点击恢复，右键菜单"
@@ -43,20 +55,11 @@ func _ready() -> void:
 		image.gradient.colors = PackedColorArray([Color("357fe5"), Color("e6f3ff")])
 		_tray.icon = image
 		add_child(_tray)
-		_menu = PopupMenu.new()
-		_menu.add_item("显示宠物", 0)
-		_menu.add_item("编辑学习计划", 1)
-		_menu.add_item("隐藏宠物", 2)
-		_menu.add_separator()
-		_menu.add_item("退出", 3)
-		add_child(_menu)
-		_menu.id_pressed.connect(_on_menu)
 		_tray.pressed.connect(func(button: int, _position: Vector2i):
 			if button == MOUSE_BUTTON_LEFT:
 				show_pet()
 			elif button == MOUSE_BUTTON_RIGHT:
-				_menu.position = DisplayServer.mouse_get_position()
-				_menu.popup()
+				_show_context_menu()
 		)
 	var timer := Timer.new()
 	timer.wait_time = 2.0
@@ -111,7 +114,11 @@ func _input(event: InputEvent) -> void:
 			else:
 				_finish_pointer(event.position)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			edit_requested.emit()
+			_show_context_menu()
+
+func _show_context_menu() -> void:
+	_menu.position = DisplayServer.mouse_get_position()
+	_menu.popup()
 
 func _process(_delta: float) -> void:
 	if not _pressed:
@@ -145,6 +152,7 @@ func _finish_pointer(release_position: Variant = null) -> void:
 	_dragging = false
 
 func _on_menu(id: int) -> void:
+	_menu.hide()
 	match id:
 		0: show_pet()
 		1:
@@ -152,3 +160,9 @@ func _on_menu(id: int) -> void:
 			edit_requested.emit()
 		2: hide_pet()
 		3: quit_requested.emit()
+		4:
+			show_pet()
+			goal_requested.emit()
+		5:
+			show_pet()
+			settings_requested.emit()

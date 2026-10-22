@@ -1,55 +1,55 @@
-# 原型验证记录 · v0.4
+# 原型验证记录 · v0.5
 
-日期：2026-10-22。旧版记录保留在 [verification-v0.3.md](verification-v0.3.md)。以下只代表实际测试范围。
+日期：2026-10-22。旧版记录保留在 [verification-v0.4.md](verification-v0.4.md)。以下只代表实际测试范围。
 
 ## 环境与产物
 
-Windows 11（NT 10.0.26200.0），Intel UHD Graphics 630，驱动 31.0.101.2135；Godot 4.7.2 标准版 / GDScript，Compatibility / OpenGL 3.3。原型 `build/CloudDragonPrototype-v0.4.exe` 为 Windows x64 Debug、嵌入 PCK，103,927,992 字节，未签名。`build-prototype.ps1` 已导出成功，并生成 Godot / 第三方许可说明。工具、EXE、日志及个人数据不纳入 Git。
+Windows 11（NT 10.0.26200.0），Intel UHD Graphics 630，驱动 31.0.101.2135；Godot 4.7.2 标准版 / GDScript，Compatibility / OpenGL 3.3。`build-prototype.ps1` 成功输出 `build/CloudDragonPrototype-v0.5.exe`，Windows x64 Debug、嵌入 PCK，**107,192,152 字节**，未签名；引擎与第三方许可说明同时生成。引擎、EXE、原始日志、测试数据和个人进度不纳入 Git。
 
-## 本轮新增与测试
+## 自动与实际渲染检查
 
-`test-prototype.ps1`：**127 checks，0 failures，ALL CHECKS PASSED**。
+`test-prototype.ps1`：**178 checks，0 failures，ALL CHECKS PASSED**。
 
-保留既有学习数据、优先级、点击 / 拖动、四档缩放与覆盖检查；新增双须独立于头骨的运动、须根连接、连续性 / 周期接缝、五段尾部拓扑、尾波顺序延迟，以及焰身 / 火舌的相对变形检查。火舌还必须相对移动中的焰身发生变化，避免整团火焰移动就错误通过。
+保留学习完成 / 手动推进、保存恢复、动作优先级、快速拖动、四档缩放、旧皮肤复用等检查。新增玉骨皮肤比例与透明边缘、刚性眼鼻 / 骨角、独立眨眼及隐藏暂停、46 个关节与五组软鬃连接 / 相对运动、六动作循环、45° 吐息锚点、真实当前目标、最小字号和效果点击范围。
 
-测试首先观察到旧实现的双须独立摆动失败，随后通过；尾部细分检查也先因控制段不足失败，补齐后通过。曾发现左须影响场在抬头时拉扯颈部，形成局部翻折；扩大渐变区域后，保留双须挂接头部的正确关系并通过校验。
+新形象按六动作 × 七时间点 × 十六相位采样，并检查切换帧；包括骨段长度、归一化权重、刚性面部和可见三角形方向。所有源 alpha ≥ 0.05 像素所覆盖三角形均参与可见性标记，涵盖细须 / 脚边 / 焰尖。旧皮肤回归也通过。有限采样不能保证任意未来参数都安全。
 
-全动作结构采样提高至五动作 × 七时间点 × 十六相位，并检查五次切换各十八帧。覆盖固定骨段长度、每顶点最多四个归一化权重、刚性面部比例、可见三角形方向、稳定包围框及切换连续性。可见三角形由所有 alpha ≥ 0.05 的源像素标记，包含细须 / 脚边 / 焰尖，不只看三角形中心。有限采样不代表任意未来参数均安全。
+源码与 **Windows Validation 导出 EXE** 均在实际 OpenGL 窗口运行，通过：
 
-当前 36 个控制关节，3,300 个网格三角形，原 PNG 像素未改。GPU 和原生窗口轮廓采用相同绑定与三角插值。尾焰 Shader 保持 alpha，只改变局部 RGB；每实例独立材质，保留换色调制。具体结构和复用规则见 [wind-and-tail-v3.md](wind-and-tail-v3.md)。
+`SMOKE TEST PASSED: jade default, context menu, breath goal, click actions, rapid drag, study state, scaling, GPU coverage, hide/show`
 
-## 实际渲染与导出验证
+验证默认玉骨、无常驻目标、右键菜单及菜单吐息、吐息结束后目标消失、点击雾幕进入计划、学习状态、缩放、隐藏恢复。四档尺寸 / 全动作的最终原生区域覆盖源图可见点；另在 50% / 125% 下独立扫描实际 GPU framebuffer，对游动、舒展、收拢及吐息 **0.6 / 1.4 / 5.4 秒**检查原生区域覆盖，包含喷出、成雾和淡出。
 
-源码与 `CloudDragonValidation.exe` 均在实际 OpenGL 窗口输出：
+两处缺陷先失败后修复：重叠身体 / 喷流轮廓直接拼接会被 Windows ALTERNATE 填充切孔，改成先并集；扩大采样到喷出和淡出后发现布尔合并的小数边经原生取整仍会裁边，增加屏幕坐标 2 像素保守扩张及所有轮廓并集。整数覆盖回归先失败，再通过。测试没有降低可见 alpha 阈值或删除失败阶段。
 
-`SMOKE TEST PASSED: left-click actions, bubble plan, rapid drag, study state, scaling, GPU coverage, hide/show`
+独立只读代码审查两轮均无 Critical / Important；绝对路径临时诊断已移除。所有验证使用隔离目录，未用用户实际任务做完成 / 推进测试。
 
-检查引擎输入事件触发的点击动作、气泡计划、单帧快速拖动、学习完成 / 手动推进、缩放、隐藏恢复；四档尺寸 / 多动作下最终取整组合轮廓覆盖可见点。另在 50% / 125% 下，对游动 / 舒展 / 收拢的实际 GPU framebuffer 逐扫描行检查原生区域覆盖，独立于 CPU 源图映射。
+## 图像与性能
 
-这些图像来自 viewport，在原生窗口区域裁剪之前获取；需结合轮廓检查，不能单凭截图宣称真实鼠标穿透已验收。全身、双须和尾部的 64 帧动图与姿态图已生成并查看；近景是故意裁切构图。独立只读审查未发现 Critical / Important 代码问题，指出的火舌相对焰身测试缺口已补齐。
+已生成并查看实际引擎渲染的全身游动、头部近景、睁闭眼、姿态、右键菜单与完整云雾吐息。云雾由显式动画时间驱动的连续雾团与噪声 Shader 生成，颜色为青玉阴影与灰白亮部；不是体积流体模拟。预览见 [jade-dragon-v1.md](jade-dragon-v1.md)。
 
-## 实测帧率
+GIF 为约 30 FPS 的确定性时间线导出，全身 / 头部各 64 帧，吐息 168 帧；不能据此声称实时性能。近景故意裁切构图，不表示桌面窗口裁剪。viewport 截图在原生区域裁剪前获取，需结合覆盖检查理解。
 
-当前生产配置：60 FPS 上限、主窗口关闭额外 GL VSync 等待。预热 3 秒后统计 360 个 frame_post_draw 间隔：6.458444 秒，平均 **55.74 FPS**，P95 **21.75 ms**，最长 **187.77 ms**。仍有偶发长帧，不宣称稳定锁定 60 FPS 或完全无卡顿；GIF 约 30 FPS 只是导出预览。长期 CPU / GPU / 内存未测量。
+生产配置为 60 FPS 上限、主窗口关闭额外 GL VSync 等待。此前玉骨悬浮样本：预热 3 秒后 360 帧，平均 **56.68 FPS**、P95 **21.71 ms**、最长 **182.74 ms**。新增云雾与保守并集后的吐息样本：360 帧 / **6.647851 秒**，平均 **54.15 FPS**、P95 **24.56 ms**、最长 **190.38 ms**；样本涵盖吐息和结束后的短暂悬浮。仍有偶发长帧，不声称稳定锁定 60 FPS；长期 CPU / GPU / 内存未测量。
 
-复现使用根目录 PowerShell：
+复现命令在根目录 PowerShell 执行，数据目录必须隔离：
 
 ```powershell
 $env:APPDATA = Join-Path (Get-Location) '.tools/appdata'
-$env:CLOUD_DRAGON_DATA_DIR = Join-Path (Get-Location) '.tools/frame-check'
-& '.tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe' --path desktop-pet --quit-after 1200 --script res://tests/measure_motion.gd
+$env:CLOUD_DRAGON_DATA_DIR = Join-Path (Get-Location) '.tools/isolated-frame-check'
+& '.tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe' --path desktop-pet --quit-after 1500 --script res://tests/measure_motion.gd -- --breath
 ```
 
-源码渲染检查将最后的脚本改为 `res://tests/smoke.gd`。导出验证使用 `Windows Validation` 预设，启动后必须看到成功标志。测试须保留隔离目录，不触碰用户学习数据。原始日志位于根目录 `docs/superpowers/execution/`，不提交。
+去掉末尾 `-- --breath` 测悬浮；脚本换为 `res://tests/smoke.gd` 测源码渲染。导出验证用独立 `Windows Validation` 预设，必须检查退出码和成功标志，不能因程序退出就认定通过。原始日志在根目录 `docs/superpowers/execution/`，不提交。
 
-## 当前边界与下一版
+## 尚未完成
 
-用户已选择 C 玉骨天龙，新形象定向图与结构图已归档，**尚未作为运行皮肤接入**。最新要求是全身细致的力传导、分阶段动作和惯性收势，已写入根目录 [全身动作规格](../../docs/superpowers/specs/2026-10-22-jade-dragon-whole-body-motion.md)。当前 v0.4 是旧素材的参数驱动风动基线，不能称为该完整规格已实现。
+本版完成默认玉骨外观、局部头部表情、身体软鬃、吐息云雾和菜单；完整全身动力学、分区惯性求解、所有动作阶段、独立下颌张合、补画拆层、转背 / 翻身、近远肢遮挡交换、盘绕和尾焰生成消散仍未实现，继续按[全身动作规格](../../docs/superpowers/specs/2026-10-22-jade-dragon-whole-body-motion.md)追踪。
 
-当前没有全身受力 / 惯性求解、新形象的拆层绑定、火舌生成消散生命周期、独立闭眼表情、转背 / 翻身 / 近远肢遮挡交换或盘绕。真实鼠标穿透、快速越界拖动、不同 DPI、多屏拔插、其他显卡及 Windows 10 实机验收仍未完成。安装器、自启动、清单分享、备份恢复界面与自动更新未实现。
+真实鼠标穿透 / 菜单点击 / 快速越界拖动、多屏拔插、不同 DPI、其他显卡和 Windows 10 实机验收尚未完成；本轮使用引擎输入事件与真实 GPU / 原生区域检查。安装器、自启动、清单分享、备份恢复界面和自动更新未实现。
 
-## 数据与同步
+## 数据与交接
 
-源码仓库为私有 [Penguins321/cloud-dragon-study-pet](https://github.com/Penguins321/cloud-dragon-study-pet)。学习数据默认在用户 AppData，Git 不包含个人进度。单实例采用仅监听 localhost 的生命周期 TCP 绑定，端口占用可能导致安全拒绝启动；尚未改用命名互斥量。
+源码仓库为私有 [Penguins321/cloud-dragon-study-pet](https://github.com/Penguins321/cloud-dragon-study-pet)。个人数据默认位于用户 AppData，Git 不包含个人进度；复制方式与换电脑入口见根目录 [HANDOFF.md](../../HANDOFF.md)。单实例使用 localhost TCP 生命周期绑定，不传输数据，端口碰撞可能拒绝启动；测试换新隔离目录重试，不绕过保护。
 
-新版输出独立 v0.4 名称，避免覆盖正在运行的旧程序。先从旧版托盘退出再启动新版，不强制终止用户宠物。换电脑步骤与最新设计入口见根目录 HANDOFF.md。
+输出采用独立 v0.5 名称，避免覆盖运行中的旧 EXE。启动新版前先从旧版托盘退出，不强制结束用户宠物。

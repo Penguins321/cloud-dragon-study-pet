@@ -1,5 +1,7 @@
 extends Resource
 
+@export var breath_anchor := Vector2.ZERO
+
 @export var id: StringName = &""
 @export var scene: PackedScene
 @export var action_map: Dictionary = {}

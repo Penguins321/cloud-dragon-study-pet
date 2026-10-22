@@ -17,8 +17,11 @@
 - `directions-v1.png`：A / B / C 风格对比，内置 imagegen 生成；C 已选。
 - `jade-dragon-detail-v1.png`：C 独立细化稿，包含完整形体、结构拆解、头部细节与风动分区，内置 imagegen 生成。
 - `prompt-directions.txt`、`prompt-detail.txt`：完整生成提示词，便于后续修改。
-- 原始运行素材仍为 `desktop-pet/pet/skins/cloud_dragon/dragon.png`，保留归档。
+- `prompt-runtime-cutout.txt`：从选定设计提取透明运行形象的提示词；产物在 `desktop-pet/pet/skins/jade_dragon/dragon.png`（1983 × 793，RGBA）。v0.5 已设为默认运行皮肤，旧云龙素材原样保留。
+- `prompt-head-closed.txt`：闭眼头部的修改提示词；透明产物在 `desktop-pet/pet/skins/jade_dragon/head-closed.png`（1254 × 1254）。运行时只取眼睑局部，不替换头骨、角或口鼻。
 - 本目录是美术设计稿，不是已校验的拆层动画素材。新比例不能直接套旧贴图权重；接入前重新标注关节、绑定与渲染轮廓，保留独立动作时间线和风动规则。
 - 原图与此次生成提示词保存在本目录；不覆盖既有参考或旧预览。生成输出必须逐项检查四肢、头尾连续性与须根，图内结构草图不自动等于生产绑定通过。
+
+运行绑定已按新比例重做，包含 46 个控制关节、五组身体鬃毛与独立眨眼。实际姿态和动图、硬区约束、换色与后续拆层边界见[玉骨天龙规则](../../../../desktop-pet/docs/jade-dragon-v1.md)。当前是透明整体贴图的网格绑定，尚未完成所有部位独立补画拆层，不能用于未经验证的转背或肢体遮挡交换。
 
 最新动作要求已记录为[全身动作规格](../../../../docs/superpowers/specs/2026-10-22-jade-dragon-whole-body-motion.md)：每个部位都有主动发力、被动跟随和收势规则，不限于尾巴。当前定向图是外观与结构参考，正式动作需要配套分层素材、连续曲线和关节约束。

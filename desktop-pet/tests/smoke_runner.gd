@@ -14,6 +14,10 @@ static func run(tree: SceneTree) -> void:
 		printerr("SMOKE FAIL: skin or isolated default plan missing")
 		tree.quit(1)
 		return
+	if app.pet.skin.id != &"jade_dragon" or app.breath_effect.visible:
+		printerr("SMOKE FAIL: jade default missing or goal is permanently visible")
+		tree.quit(1)
+		return
 	_pointer_click(app, app.pet.position + app.pet.map_skin_point(Vector2(380, 45)))
 	if app.pet.current_action != &"swim" or app.panel_window.visible:
 		printerr("SMOKE FAIL: left click did not select movement independently of plan")
@@ -34,9 +38,39 @@ static func run(tree: SceneTree) -> void:
 		printerr("SMOKE FAIL: rapid drag consumed a click action")
 		tree.quit(1)
 		return
-	_pointer_click(app, app.bubble.position + app.bubble.size * 0.5)
+	var right := InputEventMouseButton.new()
+	right.button_index = MOUSE_BUTTON_RIGHT
+	right.pressed = true
+	right.position = app.pet.position+app.pet.map_skin_point(Vector2(404,61))
+	app.desktop._input(right)
+	if not app.desktop._menu.visible or app.panel_window.visible:
+		printerr("SMOKE FAIL: right click did not open the context menu")
+		tree.quit(1)
+		return
+	await _capture(tree,app.desktop._menu,"context-menu")
+	app.desktop._menu.id_pressed.emit(4)
+	app.pet.player.seek(1.4,true)
+	app.pet._process(0.0)
+	app._update_geometry()
+	if app.pet.current_action != &"breath" or not app.breath_effect.goal_label.visible or app.breath_effect.goal_label.text != "单例模式":
+		printerr("SMOKE FAIL: menu breath did not reveal current goal")
+		tree.quit(1)
+		return
+	await _capture(tree,tree.root,"goal-breath")
+	app.pet.player.seek(5.58,true)
+	app.pet._process(0.05)
+	app._process(0.0)
+	if app.pet.current_action != &"idle" or app.breath_effect.visible:
+		printerr("SMOKE FAIL: completed breath left a permanent goal overlay")
+		tree.quit(1)
+		return
+	app.pet.select_action(&"breath")
+	app.pet.player.seek(1.4,true)
+	app.pet._process(0.0)
+	app._update_geometry()
+	_pointer_click(app, app.breath_effect.goal_rect.get_center())
 	if not app.panel_window.visible:
-		printerr("SMOKE FAIL: bubble click did not open study panel")
+		printerr("SMOKE FAIL: goal mist click did not open study panel")
 		tree.quit(1)
 		return
 	await _capture(tree, app.panel_window, "study-plan")
@@ -74,16 +108,25 @@ static func run(tree: SceneTree) -> void:
 	if DisplayServer.get_name() != "headless":
 		for size in [0.5, 1.25]:
 			app.pet.set_display_scale(size)
-			for action in [&"swim", &"stretch", &"rest"]:
+			for action in [&"swim", &"stretch", &"rest", &"breath"]:
 				app.pet.select_action(action)
 				app.pet.player.advance(0.3)
 				app.pet.player.advance(0.0)
-				await tree.process_frame
-				await RenderingServer.frame_post_draw
-				if not _rendered_pixels_inside_region(tree.root):
-					printerr("SMOKE FAIL: GPU rendered pixels outside native mask: ", size, " / ", action)
-					tree.quit(1)
-					return
+				var sample_times := [0.3]
+				if action == &"breath":
+					sample_times = [0.6, 1.4, 5.4]
+				for sample_time in sample_times:
+					app.pet.player.seek(sample_time,true)
+					app.pet._process(0.0)
+					app._update_geometry()
+					await tree.process_frame
+					await RenderingServer.frame_post_draw
+					if not _rendered_pixels_inside_region(tree.root):
+						printerr("SMOKE FAIL: GPU rendered pixels outside native mask: ", size, " / ", action, " at ", sample_time)
+						printerr("EFFECT REGION ",app.breath_effect.goal_rect," label ",app.breath_effect.goal_label.get_rect()," caption ",app.breath_effect.caption.get_rect()," time ",app.breath_effect.elapsed," current ",app.pet.current_action)
+						await _capture(tree,tree.root,"coverage-failure")
+						tree.quit(1)
+						return
 	app.pet.set_display_scale(1.0)
 	app.settings_window.hide()
 	app.desktop.hide_pet()
@@ -97,7 +140,7 @@ static func run(tree: SceneTree) -> void:
 		tree.quit(1)
 		return
 	await _capture(tree, tree.root, "desktop-pet")
-	print("SMOKE TEST PASSED: left-click actions, bubble plan, rapid drag, study state, scaling, GPU coverage, hide/show")
+	print("SMOKE TEST PASSED: jade default, context menu, breath goal, click actions, rapid drag, study state, scaling, GPU coverage, hide/show")
 	tree.quit()
 
 static func _pointer_click(app: Node, point: Vector2) -> void:
@@ -134,6 +177,7 @@ static func _rendered_pixels_inside_region(window: Window) -> bool:
 				inside = not inside
 				cursor += 1
 			if not inside and image.get_pixel(x, y).a >= 0.05:
+				printerr("GPU OUTSIDE REGION at ", Vector2i(x, y), " alpha ", image.get_pixel(x, y).a)
 				return false
 	return true
 
@@ -162,6 +206,7 @@ static func _native_region_covers_artwork(app: Node) -> bool:
 						var local: Vector2 = app.pet.skin.render_rect.position + (Vector2(x, y) + Vector2(0.5, 0.5)) * factor
 						var window_point: Vector2 = app.pet.position + app.pet.map_skin_point(local)
 						if not membership._inside_outline(window_point, native) or not Rect2(Vector2.ZERO, app.get_window().size).has_point(window_point):
+							printerr("NATIVE SOURCE OUTSIDE ",size," / ",action," frame ",frame," source ",Vector2i(x,y)," window ",window_point," window size ",app.get_window().size)
 							return false
 	app.pet.set_display_scale(1.0)
 	app.pet.play_action(&"idle")

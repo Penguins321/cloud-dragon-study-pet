@@ -50,7 +50,7 @@ func _ready() -> void:
 	box.add_child(motion_label)
 	var motions := HBoxContainer.new()
 	box.add_child(motions)
-	for entry in [["游动", &"swim"], ["抬头", &"look"], ["舒展", &"stretch"], ["收拢", &"rest"], ["欢腾", &"celebrate"]]:
+	for entry in [["游动", &"swim"], ["抬头", &"look"], ["舒展", &"stretch"], ["收拢", &"rest"], ["欢腾", &"celebrate"], ["吐息", &"breath"]]:
 		var button := Button.new()
 		button.text = entry[0]
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -64,7 +64,7 @@ func _ready() -> void:
 		button.disabled = true
 		box.add_child(button)
 	var note := Label.new()
-	note.text = "左键云龙切换动作，按住拖动\n点击气泡或右键云龙打开学习计划。"
+	note.text = "左键循环动作（含吐息查看目标），按住拖动\n右键打开菜单；点击龙息雾幕打开学习计划。"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_font_size_override("font_size", 14)
 	box.add_child(note)

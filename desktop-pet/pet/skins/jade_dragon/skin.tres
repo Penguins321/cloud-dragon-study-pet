@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://pet/pet_skin.gd" id="1"]
+[ext_resource type="PackedScene" path="res://pet/skins/jade_dragon/view.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://pet/skins/jade_dragon/dragon.png" id="3"]
+
+[resource]
+script = ExtResource("1")
+id = &"jade_dragon"
+scene = ExtResource("2")
+action_map = {&"idle": &"float", &"swim": &"swim", &"look": &"look", &"curious": &"look", &"stretch": &"stretch", &"rest": &"rest", &"sleepy": &"rest", &"celebrate": &"celebrate", &"dragging": &"carry", &"breath": &"interactions/breath"}
+breath_anchor = Vector2(419, 73)
+visual_bounds = Rect2(-660, -110, 740, 390)
+hit_polygon = PackedVector2Array(0, 65, 22, 0, 60, 12, 100, 100, 175, 70, 235, 65, 290, 100, 310, 10, 350, 0, 400, 30, 440, 80, 440, 175, 410, 155, 380, 176, 345, 145, 240, 140, 232, 155, 190, 165, 170, 140, 70, 145, 0, 110)
+bubble_anchor = Vector2(-365, 0)
+render_texture = ExtResource("3")
+render_rect = Rect2(0, 0, 440, 175.95562)

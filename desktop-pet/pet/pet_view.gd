@@ -11,8 +11,8 @@ var _enabled := true
 var _render_polygons: Array[PackedVector2Array] = []
 var _region_samples := PackedVector2Array()
 var _interaction_index := -1
-const CLICK_ACTIONS: Array[StringName] = [&"swim", &"look", &"stretch", &"rest", &"celebrate"]
-const PRIORITY := {&"idle": 0, &"swim": 1, &"rest": 1, &"sleepy": 1, &"curious": 2, &"look": 2, &"stretch": 2, &"celebrate": 3, &"dragging": 4}
+const CLICK_ACTIONS: Array[StringName] = [&"swim", &"look", &"stretch", &"rest", &"celebrate", &"breath"]
+const PRIORITY := {&"idle": 0, &"swim": 1, &"rest": 1, &"sleepy": 1, &"curious": 2, &"look": 2, &"stretch": 2, &"breath": 2, &"celebrate": 3, &"dragging": 4}
 
 func apply_skin(candidate: Resource) -> Error:
 	if candidate == null or candidate.get_script() != preload("res://pet/pet_skin.gd"):
@@ -127,6 +127,9 @@ func set_active(enabled: bool) -> void:
 			_activate(&"idle")
 		else:
 			player.pause()
+
+func is_active() -> bool:
+	return _enabled
 
 func set_display_scale(value: float) -> void:
 	scale = Vector2.ONE * clampf(value, 0.5, 2.0)

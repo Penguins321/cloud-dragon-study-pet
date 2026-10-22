@@ -1,18 +1,22 @@
 extends RefCounted
 
-static func run(tree: SceneTree, check: Callable) -> void:
+static func run(tree: SceneTree, check: Callable, skin_path: String = "res://pet/skins/cloud_dragon/skin.tres") -> void:
 	var view = load("res://pet/pet_view.gd").new()
 	tree.root.add_child(view)
-	view.apply_skin(load("res://pet/skins/cloud_dragon/skin.tres"))
+	view.apply_skin(load(skin_path))
 	check.call(view.has_method("cycle_action"), "left-click action cycle is supported by pet module")
 	check.call(view.actor.has_method("deform_point"), "dragon supports joint deformation rather than only root motion")
 	if not view.has_method("cycle_action") or not view.actor.has_method("deform_point"):
 		view.free()
 		return
 	var actions: Array[StringName] = []
-	for i in range(5):
+	var expected: Array[StringName] = []
+	for action in view.CLICK_ACTIONS:
+		if view.skin.action_map.has(action):
+			expected.append(action)
+	for i in range(expected.size()):
 		actions.append(view.cycle_action())
-	check.call(actions == [&"swim", &"look", &"stretch", &"rest", &"celebrate"], "click cycles five different actions")
+	check.call(actions == expected, "click cycles every supported action in order")
 	check.call(view.cycle_action() == &"swim", "action cycle wraps after celebration")
 	view.select_action(&"look")
 	check.call(view.cycle_action() == &"stretch", "click continues after an explicitly selected pose")
@@ -47,7 +51,7 @@ static func run(tree: SceneTree, check: Callable) -> void:
 			bad_weights += 1
 	var visible := _visible_triangles(rig, image)
 	var stats: Array[int] = [0, 0, 0, 0]
-	for action in [&"swim", &"look", &"stretch", &"rest", &"celebrate"]:
+	for action in expected:
 		view.select_action(action)
 		view.player.advance(0.4)
 		view.player.advance(0.0)
@@ -107,9 +111,9 @@ static func _visible_triangles(rig: Node2D, image: Image) -> Array[PackedInt32Ar
 
 static func _measure_pose(view: Node2D, visible: Array[PackedInt32Array], stats: Array[int]) -> void:
 	var rig = view.actor
-	var face_a: Vector2 = rig.deform_point(Vector2(385, 35))
-	var face_b: Vector2 = rig.deform_point(Vector2(397, 45))
-	if absf(face_a.distance_to(face_b) - Vector2(12, 10).length()) > 0.05:
+	var face_a: Vector2 = rig.deform_point(rig.face_landmarks[0])
+	var face_b: Vector2 = rig.deform_point(rig.face_landmarks[1])
+	if absf(face_a.distance_to(face_b) - rig.face_landmarks[0].distance_to(rig.face_landmarks[1])) > 0.05:
 		stats[3] += 1
 	for index in range(1, rig.JOINTS.size()):
 		var parent: int = rig.JOINTS[index][1]

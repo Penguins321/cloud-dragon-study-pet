@@ -28,6 +28,19 @@ func run() -> void:
 	check(not Geometry2D.is_point_in_polygon(Vector2(140, 80), combined), "transparent gap does not intercept desktop input")
 	check(Geometry2D.is_point_in_polygon(Vector2(50, 150), combined), "pet body remains interactive")
 	check(Geometry2D.is_point_in_polygon(Vector2(200, 30), combined), "bubble remains interactive")
+	var overlapping: Array[PackedVector2Array] = [PackedVector2Array([Vector2(80,80),Vector2(150,80),Vector2(150,140),Vector2(80,140)])]
+	var merged := PackedVector2Array()
+	var original: Array[PackedVector2Array] = [body]
+	for outline in geometry.merge_input_outlines(original,overlapping):
+		merged = geometry.combine_input_regions(merged,outline)
+	check(Geometry2D.is_point_in_polygon(Vector2(90,120),merged), "breath/body overlap stays filled instead of becoming an alternate-fill hole")
+	check(not Geometry2D.is_point_in_polygon(Vector2(140,170),merged), "union preserves unrelated transparent desktop gaps")
+	var diagonal: Array[PackedVector2Array] = [PackedVector2Array([Vector2(0.9,0.9),Vector2(20.9,0.9),Vector2(0.9,20.9)])]
+	var no_additions: Array[PackedVector2Array] = []
+	var rounded := PackedVector2Array()
+	for outline in geometry.merge_input_outlines(diagonal,no_additions):
+		for point in outline: rounded.append(point.floor())
+	check(Geometry2D.is_point_in_polygon(Vector2(10.5,10.5),rounded), "native integer rounding retains subpixel coverage after polygon union")
 	var Guard = load("res://desktop/single_instance.gd")
 	var first_guard = Guard.new()
 	var second_guard = Guard.new()
@@ -54,6 +67,10 @@ func run() -> void:
 	await load("res://tests/test_flexible.gd").run(self, check)
 	load("res://tests/test_wind.gd").run(self, check)
 	load("res://tests/test_tail_flow.gd").run(self, check)
+	await load("res://tests/test_jade_skin.gd").run(self, check)
+	load("res://tests/test_head.gd").run(self, check)
+	load("res://tests/test_mane.gd").run(self, check)
+	load("res://tests/test_breath.gd").run(self, check)
 	print("%d checks, %d failures" % [checks, failures.size()])
 	if failures.is_empty():
 		print("ALL CHECKS PASSED")

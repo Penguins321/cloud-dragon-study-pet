@@ -1,8 +1,8 @@
-param([string]$FrameDirectory, [string]$Destination)
+param([string]$FrameDirectory, [string]$Destination, [ValidateRange(1,600)][int]$FrameCount = 64)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationCore,WindowsBase
 $encoder = New-Object System.Windows.Media.Imaging.GifBitmapEncoder
-for ($index = 0; $index -lt 64; $index++) {
+for ($index = 0; $index -lt $FrameCount; $index++) {
     $source = [System.Windows.Media.Imaging.BitmapFrame]::Create([Uri](Join-Path $FrameDirectory ('frame-{0:D3}.png' -f $index)))
     $metadata = New-Object System.Windows.Media.Imaging.BitmapMetadata('gif')
     $delay = [uint16]3
@@ -11,9 +11,11 @@ for ($index = 0; $index -lt 64; $index++) {
     $metadata.SetQuery('/grctlext/Disposal', [byte]2)
     $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($source, $null, $metadata, $null))
 }
-$stream = [System.IO.File]::Open($Destination, [System.IO.FileMode]::Create)
-try { $encoder.Save($stream) } finally { $stream.Dispose() }
-$bytes = [System.IO.File]::ReadAllBytes($Destination)
+$encoded = New-Object System.IO.MemoryStream
+try {
+    $encoder.Save($encoded)
+    $bytes = $encoded.ToArray()
+} finally { $encoded.Dispose() }
 $offset = 13
 if (($bytes[10] -band 128) -ne 0) { $offset += 3 * [math]::Pow(2, ($bytes[10] -band 7) + 1) }
 [byte[]]$loop = 0x21,0xff,0x0b,0x4e,0x45,0x54,0x53,0x43,0x41,0x50,0x45,0x32,0x2e,0x30,0x03,0x01,0x00,0x00,0x00

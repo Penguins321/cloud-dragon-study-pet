@@ -51,3 +51,33 @@ static func combine_input_regions(body: PackedVector2Array, bubble: PackedVector
 	for offset in body.size() + 1:
 		result.append(body[(nearest_body + offset) % body.size()])
 	return result
+
+static func merge_input_outlines(outlines: Array[PackedVector2Array], additions: Array[PackedVector2Array]) -> Array[PackedVector2Array]:
+	# Windows uses ALTERNATE fill. Overlapping contours must be unioned before
+	# joining; merely bridging them would cut a hole at the mouth and in the mist.
+	var result: Array[PackedVector2Array] = []
+	var inputs: Array[PackedVector2Array] = outlines.duplicate()
+	inputs.append_array(additions)
+	for boundary in inputs:
+		# Boolean union can introduce subpixel edges. Windows truncates vertices;
+		# expand in screen pixels before union so that truncation cannot clip alpha.
+		var expanded := Geometry2D.offset_polygon(boundary,2.0,Geometry2D.JOIN_ROUND)
+		if expanded.is_empty():
+			continue
+		var pending: PackedVector2Array = expanded[0]
+		var index := 0
+		while index < result.size():
+			var merged := Geometry2D.merge_polygons(result[index],pending)
+			var outer: Array[PackedVector2Array] = []
+			for polygon in merged:
+				if not Geometry2D.is_polygon_clockwise(polygon):
+					outer.append(polygon)
+			if outer.size() == 1:
+				# Keep conservative coverage if a tiny enclosed hole forms in padding.
+				pending = outer[0]
+				result.remove_at(index)
+				index = 0
+			else:
+				index += 1
+		result.append(pending)
+	return result

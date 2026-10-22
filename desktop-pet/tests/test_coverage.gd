@@ -1,21 +1,21 @@
 extends RefCounted
 
-static func run(tree: SceneTree, check: Callable) -> void:
+static func run(tree: SceneTree, check: Callable, skin_path: String = "res://pet/skins/cloud_dragon/skin.tres") -> void:
 	var view = load("res://pet/pet_view.gd").new()
 	tree.root.add_child(view)
-	view.apply_skin(load("res://pet/skins/cloud_dragon/skin.tres"))
-	var image: Image = load("res://pet/skins/cloud_dragon/dragon.png").get_image()
+	view.apply_skin(load(skin_path))
+	var image: Image = view.skin.render_texture.get_image()
 	var geometry: Dictionary = view.get_visual_geometry()
 	var outlines: Array = geometry.get("render_polygons", [geometry.hit_polygon])
 	var missing := 0
 	var visible_samples := 0
-	var pixel_to_local := Vector2(440.0, 178.86179) / Vector2(image.get_size())
+	var pixel_to_local: Vector2 = view.skin.render_rect.size / Vector2(image.get_size())
 	for y in range(0, image.get_height(), 4):
 		for x in range(0, image.get_width(), 4):
 			if image.get_pixel(x, y).a < 0.05:
 				continue
 			visible_samples += 1
-			var point := (Vector2(x, y) + Vector2(0.5, 0.5)) * pixel_to_local
+			var point: Vector2 = view.map_skin_point((Vector2(x, y) + Vector2(0.5, 0.5)) * pixel_to_local)
 			var inside := false
 			for outline in outlines:
 				if _inside_outline(point, outline):

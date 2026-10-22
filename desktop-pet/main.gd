@@ -3,12 +3,13 @@ extends Node
 const Plan = preload("res://study/study_plan.gd")
 const Store = preload("res://study/plan_store.gd")
 const ThemeResource = preload("res://ui/study_theme.tres")
+const DEFAULT_SKIN = preload("res://pet/skins/jade_dragon/skin.tres")
 var plan = Plan.new()
 var store = Store.new()
 var pet = preload("res://pet/pet_view.gd").new()
 var desktop = preload("res://desktop/pet_window.gd").new()
-var bubble := PanelContainer.new()
-var bubble_label := Label.new()
+var breath_effect = preload("res://pet/effects/goal_breath.gd").new()
+var current_goal_title := "添加学习目标"
 var panel_window: Window
 var panel: PanelContainer
 var settings_window: Window
@@ -35,23 +36,15 @@ func _ready() -> void:
 	OS.low_processor_usage_mode_sleep_usec = 16666
 	get_tree().auto_accept_quit = false
 	add_child(desktop)
+	add_child(breath_effect)
 	add_child(pet)
 	pet.position = Vector2(16, 94)
 	pet.geometry_changed.connect(_update_geometry)
-	var error: Error = pet.apply_skin(preload("res://pet/skins/cloud_dragon/skin.tres"))
+	var error: Error = pet.apply_skin(DEFAULT_SKIN)
 	if error != OK:
 		push_error("云龙皮肤加载失败：%s" % error)
 		get_tree().quit(1)
 		return
-	bubble.theme = ThemeResource
-	bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bubble_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	bubble_label.max_lines_visible = 2
-	bubble_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	bubble_label.add_theme_font_size_override("font_size", 16)
-	bubble.add_child(bubble_label)
-	add_child(bubble)
 	panel = preload("res://ui/plan_panel.tscn").instantiate()
 	panel_window = _make_window("学习计划", panel, Vector2i(410, 610))
 	settings = preload("res://ui/settings_panel.tscn").instantiate()
@@ -68,6 +61,8 @@ func _ready() -> void:
 	settings.action_preview_requested.connect(pet.select_action)
 	desktop.pet_clicked.connect(_handle_pet_click)
 	desktop.edit_requested.connect(_show_plan)
+	desktop.goal_requested.connect(func(): pet.select_action(&"breath"))
+	desktop.settings_requested.connect(_show_settings)
 	desktop.quit_requested.connect(_quit)
 	desktop.pet_visibility_changed.connect(func(active: bool):
 		pet.set_active(active)
@@ -96,6 +91,24 @@ func _ready() -> void:
 		_show_plan()
 	if args.has("--preview-settings"):
 		_show_settings()
+	if args.has("--preview-breath"):
+		pet.select_action(&"breath")
+
+func _process(_delta: float) -> void:
+	if pet.skin == null:
+		return
+	var previous_visible: bool = breath_effect.visible
+	var previous_stage: int = breath_effect.stage()
+	_sync_breath()
+	if previous_visible != breath_effect.visible or (breath_effect.visible and previous_stage != breath_effect.stage()):
+		_update_geometry()
+
+func _sync_breath() -> void:
+	var active: bool = pet.is_active() and pet.current_action == &"breath"
+	if active:
+		breath_effect.set_frame(pet.position+pet.map_skin_point(pet.skin.breath_anchor),pet.scale.x,pet.player.current_animation_position,current_goal_title)
+	else:
+		breath_effect.visible = false
 
 func _load_plan() -> void:
 	var result: Dictionary = store.load_plan()
@@ -149,31 +162,32 @@ func _render() -> void:
 		if task.id == plan.data.current_id:
 			current = task
 	if current.is_empty():
-		bubble_label.text = "点击气泡\n添加学习目标"
+		current_goal_title = "添加学习目标"
 	else:
-		bubble_label.text = ("已完成\n" if current.completed else "当前任务\n") + current.title
+		current_goal_title = current.title
 	_update_geometry()
 
 func _update_geometry() -> void:
-	if not is_instance_valid(bubble) or not bubble.is_inside_tree():
+	if not is_instance_valid(breath_effect) or not breath_effect.is_inside_tree():
 		return
 	var geometry: Dictionary = pet.get_visual_geometry()
 	if geometry.is_empty():
 		return
 	var bounds: Rect2 = geometry.bounds
-	pet.position = Vector2(16, 94) - bounds.position
-	var anchor: Vector2 = pet.position + geometry.bubble_anchor
-	bubble.size = Vector2(194, 76)
-	bubble.position = Vector2(maxf(8, anchor.x - 130), 8)
-	var body_points := PackedVector2Array()
+	pet.position = Vector2(16, 26) - bounds.position
+	_sync_breath()
+	var outlines: Array[PackedVector2Array] = []
 	for outline in geometry.render_polygons:
 		var window_points := PackedVector2Array()
 		for point in outline:
 			window_points.append(pet.position + point)
-		body_points = preload("res://desktop/window_geometry.gd").combine_input_regions(body_points, window_points)
-	var bubble_points := PackedVector2Array([bubble.position, bubble.position + Vector2(bubble.size.x, 0), bubble.position + bubble.size, bubble.position + Vector2(0, bubble.size.y)])
-	var extent: Vector2 = (bounds.end + pet.position + Vector2(20, 12)).max(bubble.position + bubble.size + Vector2(12, 12))
-	desktop.set_visual_geometry(Rect2(Vector2.ZERO, extent), preload("res://desktop/window_geometry.gd").combine_input_regions(body_points, bubble_points))
+		outlines.append(window_points)
+	outlines = preload("res://desktop/window_geometry.gd").merge_input_outlines(outlines,breath_effect.get_regions())
+	var body_points := PackedVector2Array()
+	for outline in outlines:
+		body_points = preload("res://desktop/window_geometry.gd").combine_input_regions(body_points,outline)
+	var extent: Vector2 = bounds.end + pet.position + Vector2(20, 12)
+	desktop.set_visual_geometry(Rect2(Vector2.ZERO, extent), body_points)
 
 func _make_window(title: String, content: Control, size: Vector2i) -> Window:
 	var window := Window.new()
@@ -200,7 +214,7 @@ func _toggle_plan() -> void:
 		_show_plan()
 
 func _handle_pet_click() -> void:
-	if bubble.get_rect().has_point(desktop.last_click_position):
+	if breath_effect.contains_point(desktop.last_click_position):
 		_toggle_plan()
 	else:
 		pet.cycle_action()
