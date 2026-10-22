@@ -1,0 +1,27 @@
+config_version=5
+
+[application]
+config/name="云龙学习搭子 · 原型"
+run/main_scene="res://main.tscn"
+run/main_scene.prototype_validation="res://tests/export_runner.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/use_custom_user_dir=true
+config/custom_user_dir_name="CloudDragonStudyPrototype"
+
+[display]
+window/size/viewport_width=520
+window/size/viewport_height=280
+window/size/transparent=true
+window/per_pixel_transparency/allowed=true
+window/size/borderless=true
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0,0,0,0)
+
+[debug]
+gdscript/warnings/untyped_declaration=0
+
+[application/run]
+max_fps=30

@@ -1,0 +1,11 @@
+.tools/
+desktop-pet/.godot/
+desktop-pet/build/
+desktop-pet/export_credentials.cfg
+*.tmp
+docs/superpowers/execution/*.log
+**/.env
+**/.env.*
+**/preferences.cfg
+**/plan.json
+**/plan.json.bak

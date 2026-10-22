@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/settings_panel.gd" id="1"]
+[ext_resource type="Theme" path="res://ui/study_theme.tres" id="2"]
+
+[node name="SettingsPanel" type="PanelContainer"]
+theme = ExtResource("2")
+script = ExtResource("1")
