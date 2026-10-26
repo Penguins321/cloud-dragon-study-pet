@@ -41,7 +41,8 @@ func set_frame(mouth: Vector2, size: float, time: float, title: String) -> void:
 	origin = mouth
 	display_scale = size
 	elapsed = time
-	material.set_shader_parameter("mist_time",time)
+	if material is ShaderMaterial:
+		material.set_shader_parameter("mist_time",time)
 	var center := mouth + Vector2(-110,-110)*size
 	goal_rect = Rect2(center-Vector2(112,64)*size,Vector2(224,128)*size)
 	var padding := maxf(6.0,12.0*size)

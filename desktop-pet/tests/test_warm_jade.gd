@@ -15,6 +15,20 @@ func run() -> void:
 	view.set_process(false)
 	assert(view.current_action == &"idle")
 	var actor = view.actor
+	var min_x := 1000.0
+	var max_x := -1000.0
+	view.select_action(&"swim")
+	for frame in range(360):
+		view._process(1.0/60.0)
+		min_x = minf(min_x,actor.parts[1].origin.x)
+		max_x = maxf(max_x,actor.parts[1].origin.x)
+	assert(max_x-min_x > 80.0,"巡游必须有清楚可见的双向行进轨迹")
+	view.select_action(&"stretch")
+	var widest := 0.0
+	for frame in range(300):
+		view._process(1.0/60.0)
+		widest = maxf(widest,actor.parts[2].origin.x-actor.parts[0].origin.x)
+	assert(widest > 285.0,"舒展必须明显展开伴生玉片")
 	for action in view.CLICK_ACTIONS:
 		view.select_action(action)
 		for frame in range(420):

@@ -8,7 +8,7 @@ var plan = Plan.new()
 var store = Store.new()
 var pet = preload("res://pet/pet_view.gd").new()
 var desktop = preload("res://desktop/pet_window.gd").new()
-var breath_effect = preload("res://pet/effects/goal_breath.gd").new()
+var breath_effect = preload("res://pet/effects/goal_light.gd").new()
 var current_goal_title := "添加学习目标"
 var panel_window: Window
 var panel: PanelContainer

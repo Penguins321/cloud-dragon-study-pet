@@ -27,6 +27,9 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 ## 立即接着做什么
 
+最新 v0.8：引光已改为聚光成笺，新增半透明水晶渐变与更大动作幅度。所有动作真实轨迹、关键姿态和材质图见 desktop-pet/docs/jade-motion-v0.8.md；215 项回归与动作专项通过，新 EXE 引光全程启动验证退出码 0。
+
+
 **最新实现（2026-10-26）：温玉灵核 v0.6 已替换默认玉龙。** 不要重新做形象海选。三个刚体部件、持续悬浮相位、动作首尾归零、暖金光缝、柔光与粒子已接入；目标由顶部“引光”展示。首版设计资料在 [温玉灵核细化档案](assets/companions/warm-jade-core/2026-10-26/README.md)，实际实现与验证入口见 [v0.6 手册](desktop-pet/docs/warm-jade-v0.6.md)。设置页支持当前用户登录 Windows 后自动启动；默认关闭，使用 Startup 快捷方式，开发 / 隔离运行不写系统配置，详见 [操作说明](desktop-pet/README.md)。
 
 先读 [需求规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-design.md)、[界面规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-ui-prototype.md)、[项目操作与模块说明](desktop-pet/README.md)，再看 [实际验证范围](desktop-pet/docs/verification.md)。既有实施记录在 [执行记录](docs/superpowers/execution/prototype-progress.md)，保留历史，不把早期“未建 Git”等描述当成当前状态。
@@ -60,7 +63,7 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 ## 验证和交付
 
-`test-prototype.ps1` 当前 194 项，另有温玉灵核动作专项检查，使用隔离测试目录，失败就停下处理；不要删断言来换取通过。旧玉龙真实渲染检查入口 `desktop-pet/tests/smoke.gd` 仍含玉龙专用断言，不应直接作为温玉灵核验收入口；温玉灵核预览用 `tests/preview_warm_jade.gd`，自启动设置预览用 `tests/preview_startup.gd`。`build-prototype.ps1` 输出 `desktop-pet/build/WarmJadePrototype-v0.7.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。测试遇到实例端口碰撞应换新的隔离目录重试，不能强制绕过实例保护。
+`test-prototype.ps1` 当前 215 项，另有温玉灵核动作专项检查，使用隔离测试目录，失败就停下处理；不要删断言来换取通过。旧玉龙真实渲染检查入口 `desktop-pet/tests/smoke.gd` 仍含玉龙专用断言，不应直接作为温玉灵核验收入口；温玉灵核预览用 `tests/preview_warm_jade.gd`，自启动设置预览用 `tests/preview_startup.gd`。`build-prototype.ps1` 输出 `desktop-pet/build/WarmJadePrototype-v0.8.exe` 与 Godot 许可说明。`CloudDragonValidation.exe` 仅供开发验证，不给朋友作为产品。启动新版前先从托盘退出旧版；同一数据目录只允许一个实例，且 Windows 不允许覆盖正在运行的 EXE。测试遇到实例端口碰撞应换新的隔离目录重试，不能强制绕过实例保护。
 
 目前没有安装器或自动更新。开机自启动已通过设置页的当前用户启动目录快捷方式实现。EXE 没签名，分享时附带引擎及第三方许可文件并说明这是原型。项目本身尚未决定对外开源许可证；私有仓库不代表第三方素材可以任意再分发。
 

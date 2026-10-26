@@ -9,6 +9,10 @@ var drift := 0.0
 var energy := 0.0
 var parts: Array[Transform2D] = []
 var glow := GradientTexture2D.new()
+var _secondary_left := Vector2.ZERO
+var _secondary_right := Vector2.ZERO
+var _lag_delta := 0.0
+var _secondary_ready := false
 const CENTER := Vector2(220, 133)
 var CORE := PackedVector2Array([Vector2(0,-117),Vector2(58,0),Vector2(0,117),Vector2(-58,0)])
 var SHARD := PackedVector2Array([Vector2(-9,-40),Vector2(19,-10),Vector2(9,40),Vector2(-17,8)])
@@ -21,13 +25,13 @@ func _init() -> void:
 	# The first and last keys are the same hover pose, with eased velocity.
 	var poses := {
 		"float": [4.8,0.0,0.0,0.0,0.0,0.0],
-		"swim": [4.8,-0.10,5.0,-4.0,-23.0,0.3],
-		"look": [3.6,-0.14,3.0,-3.0,0.0,0.4],
-		"stretch": [4.2,0.0,25.0,-15.0,0.0,0.6],
-		"rest": [4.6,0.04,-12.0,15.0,0.0,-0.4],
-		"celebrate": [4.8,0.07,22.0,-20.0,0.0,1.0],
+		"swim": [5.8,-0.23,12.0,-16.0,-58.0,0.5],
+		"look": [4.6,-0.25,9.0,-9.0,-16.0,0.5],
+		"stretch": [4.8,0.0,44.0,-28.0,0.0,0.8],
+		"rest": [4.8,0.08,-19.0,25.0,0.0,-0.45],
+		"celebrate": [5.2,0.14,38.0,-30.0,16.0,1.0],
 		"carry": [2.0,-0.10,-10.0,-4.0,0.0,0.3],
-		"breath": [5.6,-0.12,14.0,-10.0,0.0,0.85]
+		"breath": [5.6,-0.035,30.0,-20.0,0.0,1.0]
 	}
 	for action: String in poses:
 		var values: Array = poses[action]
@@ -42,7 +46,18 @@ func _init() -> void:
 			animation.track_set_interpolation_type(track,Animation.INTERPOLATION_LINEAR)
 			for sample in range(61):
 				var key := sample / 60.0
-				var value: float = values[index+1] * smoothstep(0.0,0.24,key) * (1.0-smoothstep(0.70,1.0,key))
+				var envelope := smoothstep(0.0,0.20,key) * (1.0-smoothstep(0.74,1.0,key))
+				if action == "breath": envelope = smoothstep(0.0,0.16,key)*(1.0-smoothstep(0.9,1.0,key))
+				var value: float = values[index+1] * envelope
+				if action == "swim":
+					if properties[index] == "drift": value *= sin(TAU*key)
+					if properties[index] == "lift": value *= sin(TAU*key*2)
+					if properties[index] == "lean": value *= cos(TAU*key)
+				if action == "look" and properties[index] in ["lean","drift"]: value *= sin(TAU*key)
+				if action == "celebrate":
+					if properties[index] in ["drift","lean"]: value *= sin(TAU*key)
+					if properties[index] == "lift": value *= 1.0+0.22*sin(TAU*key*2)
+					if properties[index] == "spread": value *= 1.0+0.14*sin(TAU*key*2)
 				if action == "carry": value = values[index+1]
 				animation.track_insert_key(track,key*animation.length,value)
 		library.add_animation(action,animation)
@@ -59,16 +74,26 @@ func _init() -> void:
 
 func advance_pose(delta: float) -> void:
 	phase += maxf(0.0,delta)
+	_lag_delta = maxf(0.0,delta)
 	sync_pose()
 	queue_redraw()
 
 func sync_pose() -> void:
-	var bob := sin(phase*TAU/4.8)*5.0
+	var bob := sin(phase*TAU/4.8)*8.0
 	var center := CENTER + Vector2(drift,bob+lift)
+	var left := center+Vector2(-104-spread,28+sin(phase*1.31-0.5)*5+spread*-0.78)
+	var right := center+Vector2(104+spread,28+sin(phase*1.31-1.0)*5+spread*-0.78)
+	if not _secondary_ready:
+		_secondary_left = left
+		_secondary_right = right
+		_secondary_ready = true
+	_secondary_left = _secondary_left.lerp(left,1.0-exp(-_lag_delta/0.07))
+	_secondary_right = _secondary_right.lerp(right,1.0-exp(-_lag_delta/0.12))
+	_lag_delta = 0.0
 	parts = [
-		Transform2D(-0.17+lean*0.65+sin(phase*1.3-0.5)*0.025,center+Vector2(-104-spread,28+sin(phase*1.31-0.5)*5+spread*-0.65)),
+		Transform2D(-0.17-spread*0.004+lean*0.65+sin(phase*1.3-0.5)*0.04,_secondary_left),
 		Transform2D(lean+sin(phase*TAU/4.8)*0.018,center),
-		Transform2D(0.22+lean*0.7+sin(phase*1.3-1.0)*0.025,center+Vector2(104+spread,28+sin(phase*1.31-1.0)*5+spread*-0.65))
+		Transform2D(0.22+spread*0.004+lean*0.7+sin(phase*1.3-1.0)*0.04,_secondary_right)
 	]
 
 func deform_point(point: Vector2) -> Vector2:
@@ -131,13 +156,27 @@ func _draw() -> void:
 
 func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void:
 	var hub := Vector2(0,5) if core else Vector2(1,0)
-	var colors := [Color("d8e1cc"),Color("91ad98"),Color("a9bfa6"),Color("c4d6bd")]
+	# Translucent jade, cool refraction at the edges and a warm lit interior.
+	var colors := [Color(0.71,0.92,0.88,0.82),Color(0.29,0.64,0.65,0.78),Color(0.48,0.77,0.70,0.88),Color(0.80,0.93,0.80,0.79)]
 	for index in range(4):
 		var tint: Color = colors[index].lightened(bright*0.035)
-		draw_polygon(PackedVector2Array([outline[index],outline[(index+1)%4],hub]),PackedColorArray([tint.lightened(0.13),tint,tint.lightened(0.09)]))
+		draw_polygon(PackedVector2Array([outline[index],outline[(index+1)%4],hub]),PackedColorArray([tint.lightened(0.25),tint,tint.lightened(0.18)]))
+	if core:
+		var inner := PackedVector2Array([Vector2(0,-68),Vector2(24,0),Vector2(0,73),Vector2(-24,0)])
+		for index in range(4):
+			draw_polygon(PackedVector2Array([outline[index],inner[index],inner[(index+1)%4],outline[(index+1)%4]]),PackedColorArray([Color(0.91,1,0.97,0.08),Color(0.95,1,0.91,0.28),Color(0.62,0.88,1,0.15),Color(0.73,0.9,0.96,0.04)]))
+		var shine := 0.14+0.09*sin(phase*0.8)
+		draw_polygon(PackedVector2Array([Vector2(-48,-4),Vector2(-8,-93),Vector2(-19,-7),Vector2(-4,68)]),PackedColorArray([Color(0.92,1,1,shine)]))
+		var sweep := sin(phase*0.34)*90.0
+		var band := PackedVector2Array([Vector2(-100,sweep-37),Vector2(100,sweep+7),Vector2(100,sweep+14),Vector2(-100,sweep-30)])
+		for clipped in Geometry2D.intersect_polygons(CORE,band):
+			draw_polygon(clipped,PackedColorArray([Color(0.9,0.98,1,0.11+energy*0.04)]))
+		draw_line(Vector2(-21,-4),Vector2(0,-79),Color(1,1,0.94,0.35),0.8,true)
+		draw_line(Vector2(24,0),Vector2(0,100),Color(0.71,0.91,1,0.42),0.8,true)
 	var edge := outline.duplicate()
 	edge.append(outline[0])
 	draw_polyline(edge,Color(0.96,0.98,0.85,0.65),0.8,true)
+	draw_line(outline[0],outline[3],Color(0.95,1,1,0.85),1.3,true)
 	draw_line(outline[0],hub,Color(1,1,0.89,0.65),0.7,true)
 	if not core: return
 	# The seam is light on the same solid stone, never an opening in its body.
