@@ -5,4 +5,6 @@ $env:APPDATA = Join-Path $PSScriptRoot '.tools/appdata'
 $env:CLOUD_DRAGON_TEST_DIR = Join-Path $PSScriptRoot '.tools/test-data'
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 & $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot 'docs/superpowers/execution/test-all.log') --script res://tests/run_tests.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/warm-jade-test.log') --script res://tests/test_warm_jade.gd
 exit $LASTEXITCODE

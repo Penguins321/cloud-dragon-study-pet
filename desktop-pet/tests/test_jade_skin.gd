@@ -9,7 +9,7 @@ static func run(tree: SceneTree, check: Callable) -> void:
 	var skin = load(path)
 	check.call(skin.id == &"jade_dragon", "runtime skin identifies the selected jade dragon")
 	var defaults: Dictionary = load("res://main.gd").get_script_constant_map()
-	check.call(defaults.has("DEFAULT_SKIN") and defaults.DEFAULT_SKIN == skin, "application starts with jade dragon instead of the archived cloud dragon")
+	check.call(defaults.has("DEFAULT_SKIN") and defaults.DEFAULT_SKIN.id == &"warm_jade", "application starts with warm jade; dragon remains available as an archived skin")
 	var image: Image = skin.render_texture.get_image()
 	check.call(image.detect_alpha() == Image.ALPHA_BLEND and image.get_pixel(0, 0).a < 0.01 and image.get_pixel(image.get_width() - 1, image.get_height() - 1).a < 0.01, "jade artwork has real transparent background")
 	check.call(absf(skin.render_rect.size.x / skin.render_rect.size.y - float(image.get_width()) / image.get_height()) < 0.001, "jade artwork preserves its source aspect ratio")

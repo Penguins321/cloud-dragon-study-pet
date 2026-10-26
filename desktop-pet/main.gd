@@ -3,7 +3,7 @@ extends Node
 const Plan = preload("res://study/study_plan.gd")
 const Store = preload("res://study/plan_store.gd")
 const ThemeResource = preload("res://ui/study_theme.tres")
-const DEFAULT_SKIN = preload("res://pet/skins/jade_dragon/skin.tres")
+const DEFAULT_SKIN = preload("res://pet/skins/warm_jade/skin.tres")
 var plan = Plan.new()
 var store = Store.new()
 var pet = preload("res://pet/pet_view.gd").new()
@@ -42,7 +42,7 @@ func _ready() -> void:
 	pet.geometry_changed.connect(_update_geometry)
 	var error: Error = pet.apply_skin(DEFAULT_SKIN)
 	if error != OK:
-		push_error("云龙皮肤加载失败：%s" % error)
+		push_error("温玉灵核皮肤加载失败：%s" % error)
 		get_tree().quit(1)
 		return
 	panel = preload("res://ui/plan_panel.tscn").instantiate()
@@ -191,7 +191,7 @@ func _update_geometry() -> void:
 
 func _make_window(title: String, content: Control, size: Vector2i) -> Window:
 	var window := Window.new()
-	window.title = "云龙 · " + title
+	window.title = "温玉灵核 · " + title
 	window.size = size
 	window.min_size = Vector2i(360, 420)
 	window.visible = false

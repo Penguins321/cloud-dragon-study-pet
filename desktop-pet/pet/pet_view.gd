@@ -149,6 +149,10 @@ func get_visual_geometry() -> Dictionary:
 		for point in outline:
 			transformed.append(map_skin_point(point))
 		render_polygons.append(transformed)
+	if actor.has_method("render_regions"):
+		render_polygons.clear()
+		for outline in actor.render_regions():
+			render_polygons.append(_scaled_actor_transform() * outline)
 	return {
 		"bounds": Rect2(skin.visual_bounds.position * scale, skin.visual_bounds.size * scale),
 		"hit_polygon": polygon,

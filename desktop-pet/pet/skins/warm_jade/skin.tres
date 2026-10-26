@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://pet/pet_skin.gd" id="1"]
+[ext_resource type="PackedScene" path="res://pet/skins/warm_jade/view.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"warm_jade"
+scene = ExtResource("2")
+action_map = {&"idle": &"float", &"swim": &"swim", &"look": &"look", &"curious": &"look", &"stretch": &"stretch", &"rest": &"rest", &"sleepy": &"rest", &"celebrate": &"celebrate", &"dragging": &"carry", &"breath": &"breath"}
+breath_anchor = Vector2(220, 16)
+visual_bounds = Rect2(-60, -210, 500, 530)
+hit_polygon = PackedVector2Array(220, 16, 278, 132, 220, 250, 162, 132)
+bubble_anchor = Vector2(5, -130)

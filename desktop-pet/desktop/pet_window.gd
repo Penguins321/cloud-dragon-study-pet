@@ -37,7 +37,7 @@ func _ready() -> void:
 	set_process(false)
 	_menu = PopupMenu.new()
 	_menu.add_item("显示宠物", 0)
-	_menu.add_item("今日目标（吐息）", 4)
+	_menu.add_item("今日目标（引光）", 4)
 	_menu.add_item("学习计划…", 1)
 	_menu.add_item("设置…", 5)
 	_menu.add_separator()
@@ -47,7 +47,7 @@ func _ready() -> void:
 	_menu.id_pressed.connect(_on_menu)
 	if DisplayServer.has_feature(DisplayServer.FEATURE_STATUS_INDICATOR):
 		_tray = StatusIndicator.new()
-		_tray.tooltip = "云龙学习搭子 · 点击恢复，右键菜单"
+		_tray.tooltip = "温玉灵核学习搭子 · 点击恢复，右键菜单"
 		var image := GradientTexture2D.new()
 		image.width = 32
 		image.height = 32
