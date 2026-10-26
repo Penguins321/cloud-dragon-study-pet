@@ -27,6 +27,8 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 ## 立即接着做什么
 
+**最新形象决定（2026-10-26）：用户已选 E「温玉灵核」替代复杂云龙，明确要求开始细化。** 不要重新做形象海选，也不要把旧版 C 玉骨天龙当成最新目标。新角色只有主玉核、左右两枚伴生玉片及内光，保持成熟、圣洁、简洁；首版结构与六姿态图、完整提示词和独立于颜色的动作规则已在 [温玉灵核细化档案](assets/companions/warm-jade-core/2026-10-26/README.md) 归档。目前只完成设计细化，运行程序仍是下述 v0.5 玉骨天龙，尚未接入新角色；动作图不是可直接逐帧播放的素材。新皮肤应单独实现三个刚体部件，不继承旧龙的 46 关节变形；目标展示改为顶部“引光”，保留不常驻、右键菜单与原学习进度。
+
 先读 [需求规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-design.md)、[界面规格](docs/superpowers/specs/2026-10-22-desktop-study-pet-ui-prototype.md)、[项目操作与模块说明](desktop-pet/README.md)，再看 [实际验证范围](desktop-pet/docs/verification.md)。既有实施记录在 [执行记录](docs/superpowers/execution/prototype-progress.md)，保留历史，不把早期“未建 Git”等描述当成当前状态。
 
 当前 v0.5：默认形象已替换 **C 玉骨天龙**，46 个控制关节、新比例权重、刚性头骨 / 骨角、独立眨眼、五组身体软鬃、双须、五段尾部与分束尾焰。默认朝左，左键六动作循环的最后一项为吐息；右键弹出菜单。今日目标不常驻，只在左上 45° 的青玉灰白云雾中短暂显示，点击雾幕可打开计划。支持 50% 缩放和逐帧拖动边界。当前规则见 [玉骨天龙手册](desktop-pet/docs/jade-dragon-v1.md)，确切测试范围见验证记录。旧云龙和历史动作手册仍保留。

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "status": "design_draft_not_runtime",
+  "character_id": "warm_jade_core",
+  "coordinate_system": "x_right_y_down",
+  "unit": "main_core_height_H",
+  "parts": {
+    "main_core": {"size": [0.55, 1.0], "position": [0.0, 0.0], "rotation_degrees": 0.0},
+    "left_shard": {"size": [0.12, 0.28], "position": [-0.48, 0.12], "rotation_degrees": -10.0},
+    "right_shard": {"size": [0.12, 0.28], "position": [0.48, 0.12], "rotation_degrees": 10.0}
+  },
+  "invariants": {
+    "rigid_part_count": 3,
+    "allow_nonuniform_scale": false,
+    "allow_mesh_warp": false,
+    "allow_side_swap": false,
+    "allow_part_intersection": false,
+    "minimum_polygon_clearance_H": 0.06,
+    "maximum_main_tilt_degrees": 12.0,
+    "maximum_shard_tilt_degrees": 18.0,
+    "emission_anchor_H": [0.0, -0.5],
+    "emission_direction": "upper_left_45_degrees"
+  },
+  "continuity": {
+    "transition_seconds": 0.35,
+    "reset_float_phase_on_action_change": false,
+    "pause_when_hidden": true,
+    "satellite_follow_delays_seconds": [0.07, 0.12]
+  },
+  "actions": {
+    "idle": {"label": "悬浮", "duration_seconds": 4.0, "loop": true, "vertical_amplitude_H": 0.025, "tilt_amplitude_degrees": 2.0, "glow_range": [0.35, 0.5]},
+    "swim": {"label": "巡游", "duration_seconds": 4.0, "loop": true, "horizontal_amplitude_H": 0.05, "vertical_amplitude_H": 0.03, "tilt_amplitude_degrees": 5.0, "glow_range": [0.4, 0.6]},
+    "look": {"label": "感知", "duration_seconds": 2.4, "loop": false, "peak_main_tilt_degrees": -8.0, "peak_glow": 0.65},
+    "stretch": {"label": "舒展", "duration_seconds": 3.2, "loop": false, "peak_shard_centers_H": [[-0.6, -0.1], [0.6, -0.1]], "peak_glow": 0.65},
+    "rest": {"label": "收息", "duration_seconds": 4.0, "loop": false, "peak_shard_centers_H": [[-0.44, 0.22], [0.44, 0.22]], "peak_glow": 0.2},
+    "celebrate": {"label": "共鸣", "duration_seconds": 2.4, "loop": false, "peak_shard_centers_H": [[-0.57, -0.2], [0.57, -0.2]], "peak_glow": 0.9},
+    "breath": {"label": "引光", "duration_seconds": 5.6, "loop": false, "peak_main_tilt_degrees": -8.0, "prepare_until_seconds": 0.35, "text_fade_in_seconds": [1.0, 1.25], "fade_out_seconds": [5.1, 5.6], "goal_text_source": "current_study_task"},
+    "dragging": {"label": "牵引", "loop": true, "glow_range": [0.4, 0.5], "release_action": "idle"}
+  },
+  "semantic_aliases": {"curious": "look", "sleepy": "rest"},
+  "click_cycle": ["swim", "look", "stretch", "rest", "celebrate", "breath"],
+  "validation_note": "These are proposed art-control values, not measured runtime results; validate polygon clearances and complete motion bounds before integration. Color parameters are deliberately excluded from motion rules."
+}
