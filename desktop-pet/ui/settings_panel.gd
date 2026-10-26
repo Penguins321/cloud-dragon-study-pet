@@ -5,6 +5,10 @@ signal action_preview_requested(action: StringName)
 signal dismiss_requested
 signal hide_pet_requested
 signal quit_requested
+signal startup_requested(enabled: bool)
+
+var startup_button: CheckButton
+var startup_status: Label
 
 func _ready() -> void:
 	var outer := VBoxContainer.new()
@@ -21,11 +25,16 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 22)
 	box.add_child(title)
 	box.add_child(HSeparator.new())
-	var startup := CheckButton.new()
-	startup.text = "开机自启动（待产品化）"
-	startup.disabled = true
-	startup.tooltip_text = "此原型不修改系统自启动配置。"
-	box.add_child(startup)
+	startup_button = CheckButton.new()
+	startup_button.text = "开机自启动"
+	startup_button.disabled = true
+	startup_button.tooltip_text = "登录 Windows 后自动启动当前程序。"
+	startup_button.toggled.connect(func(enabled: bool): startup_requested.emit(enabled))
+	box.add_child(startup_button)
+	startup_status = Label.new()
+	startup_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	startup_status.add_theme_font_size_override("font_size",13)
+	box.add_child(startup_status)
 	var size_label := Label.new()
 	size_label.text = "宠物显示大小"
 	box.add_child(size_label)
@@ -76,3 +85,8 @@ func _ready() -> void:
 		var event: Signal = entry[1]
 		button.pressed.connect(func(): event.emit())
 		footer.add_child(button)
+
+func set_startup_state(supported: bool, enabled: bool, detail: String) -> void:
+	startup_button.disabled = not supported
+	startup_button.set_pressed_no_signal(enabled)
+	startup_status.text = detail if not detail.is_empty() else ("已启用：登录 Windows 后自动启动。" if enabled else "已关闭：登录 Windows 后不自动启动。")

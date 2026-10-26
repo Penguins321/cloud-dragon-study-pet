@@ -60,6 +60,7 @@ func run() -> void:
 	load("res://tests/test_study.gd").run(check)
 	load("res://tests/test_study.gd").run_store(check)
 	await load("res://tests/test_ui.gd").run(self, check)
+	await load("res://tests/test_startup.gd").run(self, check)
 	check(load("res://main.gd").can_instantiate(), "application composition compiles")
 	await load("res://tests/test_coverage.gd").run(self, check)
 	await load("res://tests/test_motion.gd").run(self, check)

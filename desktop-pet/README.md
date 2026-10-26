@@ -1,5 +1,7 @@
 # 温玉灵核学习搭子 · Windows 交互原型
 
+当前版本 **v0.7**：运行 `build/WarmJadePrototype-v0.7.exe` 或根目录“启动温玉灵核.cmd”。v0.7 新增下述开机自启动开关；v0.6 为形象替换的历史版本。
+
 ## v0.6 温玉灵核（2026-10-26）
 
 默认形象已替换为参考图中的主玉核与两枚伴生片。运行 `build/WarmJadePrototype-v0.6.exe` 或根目录“启动温玉灵核.cmd”；原“启动云龙原型.cmd”也指向新版。旧版说明如下保留为历史记录。
@@ -7,6 +9,14 @@
 初始为持续悬浮。点击依次巡游、感知、舒展、收息、共鸣、引光，各动作使用缓入缓出并自动回到悬浮，切换不重置悬浮时钟；拖动释放后也回到悬浮。新增切面明暗、暖金光缝、柔光、投影和 26 枚渐隐循环粒子。三个石体只旋转与平移，不拉伸。引光沿用真实今日目标，学习数据目录保持原值，已有进度继续使用。
 
 新皮肤位于 `pet/skins/warm_jade/`，由同一个几何母版实时绘制，属于参考图的程序化低多边形实现，不是截图裁剪或逐帧烘焙。原玉龙与云龙皮肤保留。全动作效果区参与 Windows 轮廓并集；实际桌面鼠标、多 DPI 与多显示器仍需交互验收。
+
+### 开机自启动
+
+运行导出的新版 EXE，右键宠物 → 设置 → 开启“开机自启动”。之后登录当前 Windows 用户时启动桌宠；关闭开关即移除启动项。默认关闭，不要求管理员权限，不修改其他用户配置。状态直接来自当前用户启动目录的 `WarmJadeStudyCompanion.lnk`，不依赖偏好文件；失败会显示原因并恢复真实状态。
+
+请保留 EXE 所在位置；移动程序后，在新位置关闭再开启一次以更新启动快捷方式。删除程序前先关闭开关。Windows 任务管理器或系统策略也可能独立禁用启动项。开发源码和设置了 `CLOUD_DRAGON_DATA_DIR` 的隔离运行禁止配置真实启动项，开关旁会显示说明。
+
+实现使用 [Windows 当前用户启动目录](https://support.microsoft.com/en-us/windows/experience/startup-boot/configure-startup-applications-in-windows) 和 [WScript.Shell 快捷方式](https://learn.microsoft.com/en-us/troubleshoot/windows-client/admin-development/create-desktop-shortcut-with-wsh)，测试只在 `.tools` 临时目录创建并检查真实快捷方式。
 
 Godot 4.7.2 标准版，GDScript。当前是可运行原型，不是正式安装版。
 

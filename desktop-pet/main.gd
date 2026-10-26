@@ -19,6 +19,7 @@ var storage_blocked := false
 var startup_message := ""
 var preferences_path := "user://preferences.cfg"
 var instance_guard = preload("res://desktop/single_instance.gd").new()
+var startup = preload("res://desktop/startup.gd").new()
 
 func _ready() -> void:
 	var data_directory := OS.get_environment("CLOUD_DRAGON_DATA_DIR")
@@ -59,6 +60,8 @@ func _ready() -> void:
 	settings.quit_requested.connect(_quit)
 	settings.display_scale_requested.connect(_set_scale)
 	settings.action_preview_requested.connect(pet.select_action)
+	settings.startup_requested.connect(_set_startup)
+	_refresh_startup()
 	desktop.pet_clicked.connect(_handle_pet_click)
 	desktop.edit_requested.connect(_show_plan)
 	desktop.goal_requested.connect(func(): pet.select_action(&"breath"))
@@ -227,10 +230,18 @@ func _show_plan() -> void:
 	pet.play_action(&"curious")
 
 func _show_settings() -> void:
+	_refresh_startup()
 	panel_window.hide()
 	_place_panel(settings_window)
 	settings_window.show()
 	settings_window.grab_focus()
+
+func _refresh_startup() -> void:
+	settings.set_startup_state(startup.available,startup.is_enabled(),startup.message)
+
+func _set_startup(enabled: bool) -> void:
+	startup.set_enabled(enabled)
+	_refresh_startup()
 
 func _set_scale(value: float) -> void:
 	pet.set_display_scale(value)
