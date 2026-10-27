@@ -6,13 +6,17 @@ Windows x64 离线桌面学习伙伴。半透明玉核、独立伴生玉片、�
 
 ## 安装与分享
 
-当前版本 **v0.10**。分发文件位于 `desktop-pet/build/dist/`：
+当前版本 **v0.11**。分发文件位于 `desktop-pet/build/dist/`：
 
-- `WarmJade-v0.10-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
-- `WarmJade-v0.10-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
+- `WarmJade-v0.11-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
+- `WarmJade-v0.11-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
 - `SHA256SUMS.txt`：供分发核验文件完整性。
 
 安装仅针对当前用户，不要求管理员权限。卸载保留学习进度。安装包与程序尚未签名；构建与验证范围见 [打包说明](desktop-pet/packaging/README.md)。生成的二进制不提交 Git。
+
+## 图标感知与新动作
+
+设置中可开关桌面图标感知：只读位置，停留在图标附近时轻轻转向，遮挡时尽量移开，不读取文件内容。新增行走、捧腹大笑、跳跃、连跳、回旋、摇摆，点击或设置页可预览；全部动作结束回悬浮。详见 [图标与动作说明](desktop-pet/docs/icon-awareness-v0.11.md)。
 
 ## 粒子成长
 

@@ -9,7 +9,7 @@
 ./desktop-pet/packaging/test-installer.ps1
 ```
 
-输出：`desktop-pet/build/dist/WarmJade-v0.10-Setup.exe`、`WarmJade-v0.10-Portable.zip` 和 `SHA256SUMS.txt`。构建输入固定为对应版本的导出 EXE；安装后使用稳定文件名 `WarmJade.exe`。安装只写当前用户，允许选择目录，创建桌面和开始菜单快捷方式及 Windows 应用卸载项，不自动启动或开启开机启动。升级前先退出温玉，安装器沿用上次安装位置。
+输出：`desktop-pet/build/dist/WarmJade-v0.11-Setup.exe`、`WarmJade-v0.11-Portable.zip` 和 `SHA256SUMS.txt`。构建输入固定为对应版本的导出 EXE；安装后使用稳定文件名 `WarmJade.exe`。安装只写当前用户，允许选择目录，创建桌面和开始菜单快捷方式及 Windows 应用卸载项，不自动启动或开启开机启动。升级前先退出温玉，安装器沿用上次安装位置。
 
 卸载只删除已知程序文件，保留用户自行放入的其他文件和 `%APPDATA%\CloudDragonStudyPrototype` 中的学习数据。仅当开机启动快捷方式指向本安装目录 EXE 时才删除它。请勿将两个版本同时运行。
 
