@@ -6,9 +6,12 @@ signal dismiss_requested
 signal hide_pet_requested
 signal quit_requested
 signal startup_requested(enabled: bool)
+signal icon_awareness_requested(enabled: bool)
 
 var startup_button: CheckButton
 var startup_status: Label
+var icon_awareness_button: CheckButton
+var icon_awareness_status: Label
 var _sections: VBoxContainer
 
 func _ready() -> void:
@@ -45,6 +48,20 @@ func _ready() -> void:
 	startup_status = _label("",12,Color("627362"))
 	startup_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	startup_card.add_child(startup_status)
+	var awareness_card := _card()
+	var awareness_row := HBoxContainer.new()
+	awareness_card.add_child(awareness_row)
+	var awareness_title := _label("桌面图标感知",16)
+	awareness_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	awareness_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	awareness_row.add_child(awareness_title)
+	icon_awareness_button = CheckButton.new()
+	icon_awareness_button.accessibility_name = "桌面图标感知"
+	icon_awareness_button.toggled.connect(func(value: bool): icon_awareness_requested.emit(value))
+	awareness_row.add_child(icon_awareness_button)
+	icon_awareness_status = _label("靠近图标时轻轻转向，遮挡时自动让开。",12,Color("627362"))
+	icon_awareness_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	awareness_card.add_child(icon_awareness_status)
 	var display := _card()
 	display.add_child(_label("显示大小",16))
 	var sizes := HBoxContainer.new()
@@ -72,7 +89,7 @@ func _ready() -> void:
 	motions.add_theme_constant_override("h_separation",6)
 	motions.add_theme_constant_override("v_separation",6)
 	motion.add_child(motions)
-	for entry in [["巡游\n弧线行进",&"swim"],["感知\n左右探查",&"look"],["舒展\n展开玉片",&"stretch"],["收息\n安静回落",&"rest"],["共鸣\n起伏应和",&"celebrate"],["引光\n聚光成笺",&"breath"]]:
+	for entry in [["巡游\n弧线行进",&"swim"],["感知\n左右探查",&"look"],["舒展\n展开玉片",&"stretch"],["收息\n安静回落",&"rest"],["共鸣\n起伏应和",&"celebrate"],["引光\n聚光成笺",&"breath"],["行走\n交替踏步",&"walk"],["捧腹大笑\n欢快颤动",&"laugh"],["跳跃\n蓄力腾空",&"jump"],["连跳\n轻盈三连",&"hop"],["回旋\n玉核转动",&"spin"],["摇摆\n左右荡漾",&"sway"]]:
 		var button := Button.new()
 		button.text = entry[0]
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -123,3 +140,7 @@ func set_startup_state(supported: bool, enabled: bool, detail: String) -> void:
 	startup_button.disabled = not supported
 	startup_button.set_pressed_no_signal(enabled)
 	startup_status.text = detail if not detail.is_empty() else ("已开启，登录 Windows 后自动陪伴你。" if enabled else "已关闭，需要时手动启动。")
+
+func set_icon_awareness_state(value: bool, detail: String) -> void:
+	icon_awareness_button.set_pressed_no_signal(value)
+	icon_awareness_status.text = detail

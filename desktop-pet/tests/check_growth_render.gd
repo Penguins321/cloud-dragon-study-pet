@@ -33,5 +33,5 @@ func run() -> void:
 					printerr("Mature growth clipped: ",size," / ",action," / ",fraction)
 					quit(1)
 					return
-	print("Mature growth: all 6 actions at 50%/125%, 3 phases each, actual GPU alpha fits native region")
+	print("Mature growth: all ",app.pet.CLICK_ACTIONS.size()," actions at 50%/125%, 3 phases each, actual GPU alpha fits native region")
 	quit()

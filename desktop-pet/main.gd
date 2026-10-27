@@ -25,6 +25,11 @@ var startup_message := ""
 var preferences_path := "user://preferences.cfg"
 var instance_guard = preload("res://desktop/single_instance.gd").new()
 var startup = preload("res://desktop/startup.gd").new()
+var icon_awareness = preload("res://desktop/icon_awareness.gd").new()
+var _avoid_target := Vector2.INF
+var _avoid_elapsed := 0.0
+var _icon_hover := 0.0
+var _icon_focus := Vector2.INF
 
 func _ready() -> void:
 	var data_directory := OS.get_environment("CLOUD_DRAGON_DATA_DIR")
@@ -44,6 +49,7 @@ func _ready() -> void:
 	add_child(desktop)
 	add_child(breath_effect)
 	add_child(pet)
+	add_child(icon_awareness)
 	pet.position = Vector2(16, 94)
 	pet.geometry_changed.connect(_update_geometry)
 	var error: Error = pet.apply_skin(DEFAULT_SKIN)
@@ -66,6 +72,8 @@ func _ready() -> void:
 	settings.display_scale_requested.connect(_set_scale)
 	settings.action_preview_requested.connect(pet.select_action)
 	settings.startup_requested.connect(_set_startup)
+	settings.icon_awareness_requested.connect(_set_icon_awareness)
+	icon_awareness.state_changed.connect(_refresh_icon_awareness)
 	_refresh_startup()
 	desktop.pet_clicked.connect(_handle_pet_click)
 	desktop.edit_requested.connect(_show_plan)
@@ -74,6 +82,7 @@ func _ready() -> void:
 	desktop.quit_requested.connect(_quit)
 	desktop.pet_visibility_changed.connect(func(active: bool):
 		pet.set_active(active)
+		icon_awareness.set_active(active)
 		OS.low_processor_usage_mode = not active
 		if not active:
 			panel_window.hide()
@@ -84,6 +93,8 @@ func _ready() -> void:
 	preferences.load(preferences_path)
 	companionship.restore(preferences.get_value("companionship", "active_seconds", 0.0))
 	_preferences_ready = true
+	icon_awareness.set_enabled(bool(preferences.get_value("pet","icon_awareness",true)))
+	icon_awareness.set_active(true)
 	_last_growth_tick = Time.get_ticks_msec()
 	_apply_growth()
 	pet.set_display_scale(float(preferences.get_value("pet", "scale", 1.0)))
@@ -109,6 +120,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if pet.skin == null:
 		return
+	_observe_icons(delta)
 	if _preferences_ready:
 		var now := Time.get_ticks_msec()
 		# Godot may cap frame delta after suspend; check the monotonic gap as well.
@@ -249,6 +261,7 @@ func _show_plan() -> void:
 
 func _show_settings() -> void:
 	_refresh_startup()
+	_refresh_icon_awareness()
 	panel_window.hide()
 	_place_panel(settings_window)
 	settings_window.show()
@@ -261,6 +274,55 @@ func _set_startup(enabled: bool) -> void:
 	startup.set_enabled(enabled)
 	_refresh_startup()
 
+func _set_icon_awareness(value: bool) -> void:
+	icon_awareness.set_enabled(value)
+	_refresh_icon_awareness()
+	_save_preferences()
+
+func _refresh_icon_awareness() -> void:
+	if is_instance_valid(settings): settings.set_icon_awareness_state(icon_awareness.enabled,icon_awareness.status)
+
+func _observe_icons(delta: float) -> void:
+	if not pet.actor.has_method("set_desktop_attention"): return
+	var now := Time.get_ticks_msec()
+	var blocked: bool = not pet.is_active() or desktop.pointer_busy() or panel_window.visible or settings_window.visible or not icon_awareness.fresh(now) or icon_awareness.left_button_down
+	var attention := Vector2.ZERO
+	if not blocked and pet.current_action == &"idle":
+		var target: Dictionary = icon_awareness.attention_target(Vector2(DisplayServer.mouse_get_position()),now)
+		if target.has("point"):
+			var point: Vector2 = target.point
+			_icon_hover = _icon_hover+minf(delta,0.1) if point == _icon_focus else 0.0
+			_icon_focus = point
+			if _icon_hover >= 0.35:
+				var origin: Vector2 = Vector2(get_window().position)+pet.position+pet.map_skin_point(Vector2(220,133))
+				attention = (point-origin).normalized()
+		else:
+			_icon_hover = 0.0
+			_icon_focus = Vector2.INF
+	pet.actor.set_desktop_attention(attention)
+	if blocked or pet.current_action == &"breath":
+		_icon_hover = 0.0
+		_icon_focus = Vector2.INF
+		_avoid_target = Vector2.INF
+		return
+	_avoid_elapsed += minf(delta,0.1)
+	var window := get_window()
+	if _avoid_elapsed >= 2.0 and _avoid_target == Vector2.INF:
+		_avoid_elapsed = 0.0
+		var rectangle := Rect2(Vector2(window.position),Vector2(window.size))
+		var footprint := Rect2(Vector2(window.position)+pet.position+Vector2(10,-190)*pet.scale,Vector2(420,505)*pet.scale)
+		for area in desktop.usable_areas():
+			if Rect2(area).has_point(rectangle.get_center()):
+				var position: Vector2 = icon_awareness.avoid_position(rectangle,footprint,Rect2(area),now)
+				if position.distance_to(rectangle.position) > 2: _avoid_target = position
+				break
+	if _avoid_target != Vector2.INF:
+		var next := Vector2(window.position).move_toward(_avoid_target,110.0*minf(delta,0.1))
+		desktop.restore_visible_position(Vector2i(next.round()))
+		if Vector2(window.position).distance_to(_avoid_target) < 2:
+			_avoid_target = Vector2.INF
+			_avoid_elapsed = -3.0
+
 func _set_scale(value: float) -> void:
 	pet.set_display_scale(value)
 	_save_preferences()
@@ -271,6 +333,7 @@ func _save_preferences() -> void:
 	preferences.set_value("pet", "scale", pet.scale.x)
 	preferences.set_value("pet", "position", get_window().position)
 	preferences.set_value("companionship", "active_seconds", companionship.active_seconds)
+	preferences.set_value("pet","icon_awareness",icon_awareness.enabled)
 	_active_since_save = 0.0
 	if preferences.save(preferences_path) != OK and not _preferences_error_reported:
 		_preferences_error_reported = true

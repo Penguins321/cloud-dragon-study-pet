@@ -7,6 +7,8 @@ var spread := 0.0
 var lift := 0.0
 var drift := 0.0
 var energy := 0.0
+var gait := 0.0
+var turn := 0.0
 var parts: Array[Transform2D] = []
 var glow := GradientTexture2D.new()
 var _secondary_left := Vector2.ZERO
@@ -14,6 +16,8 @@ var _secondary_right := Vector2.ZERO
 var _lag_delta := 0.0
 var _secondary_ready := false
 var _growth := 0.0
+var _attention := Vector2.ZERO
+var _attention_goal := Vector2.ZERO
 const CENTER := Vector2(220, 133)
 var CORE := PackedVector2Array([Vector2(0,-117),Vector2(58,0),Vector2(0,117),Vector2(-58,0)])
 var SHARD := PackedVector2Array([Vector2(-9,-40),Vector2(19,-10),Vector2(9,40),Vector2(-17,8)])
@@ -32,7 +36,13 @@ func _init() -> void:
 		"rest": [4.8,0.08,-19.0,25.0,0.0,-0.45],
 		"celebrate": [5.2,0.14,38.0,-30.0,16.0,1.0],
 		"carry": [2.0,-0.10,-10.0,-4.0,0.0,0.3],
-		"breath": [5.6,-0.035,30.0,-20.0,0.0,1.0]
+		"breath": [5.6,-0.035,30.0,-20.0,0.0,1.0],
+		"walk": [6.2,0.14,8.0,-16.0,70.0,0.6],
+		"laugh": [5.4,0.24,-12.0,-12.0,0.0,0.9],
+		"jump": [4.4,0.12,24.0,-155.0,0.0,1.0],
+		"hop": [5.4,0.16,18.0,-95.0,36.0,0.8],
+		"spin": [6.0,0.0,52.0,-24.0,0.0,1.0],
+		"sway": [6.4,0.44,14.0,-14.0,58.0,0.6]
 	}
 	for action: String in poses:
 		var values: Array = poses[action]
@@ -40,7 +50,7 @@ func _init() -> void:
 		animation.length = values[0]
 		if action in ["float", "carry"]:
 			animation.loop_mode = Animation.LOOP_LINEAR
-		var properties := ["lean","spread","lift","drift","energy"]
+		var properties := ["lean","spread","lift","drift","energy","gait","turn"]
 		for index in properties.size():
 			var track := animation.add_track(Animation.TYPE_VALUE)
 			animation.track_set_path(track,NodePath(".:" + properties[index]))
@@ -49,7 +59,28 @@ func _init() -> void:
 				var key := sample / 60.0
 				var envelope := smoothstep(0.0,0.20,key) * (1.0-smoothstep(0.74,1.0,key))
 				if action == "breath": envelope = smoothstep(0.0,0.16,key)*(1.0-smoothstep(0.9,1.0,key))
-				var value: float = values[index+1] * envelope
+				var value: float = values[index+1] * envelope if index < 5 else 0.0
+				var property: String = properties[index]
+				if action == "walk":
+					if property == "drift": value *= sin(TAU*key)
+					if property == "lean": value *= sin(TAU*key*6)
+					if property == "lift": value *= absf(sin(TAU*key*6))
+					if property == "gait": value = 22.0*sin(TAU*key*6)*envelope
+				if action == "laugh":
+					if property == "lean": value *= sin(TAU*key*7)
+					if property == "lift": value *= 0.5+0.5*cos(TAU*key*14)
+					if property == "gait": value = 7.0*sin(TAU*key*7)*envelope
+				if action == "jump":
+					if property == "lift": value = 23.0*smoothstep(0.0,0.16,key)*(1.0-smoothstep(0.16,0.28,key))-155.0*pow(maxf(0.0,sin(PI*clampf((key-0.24)/0.53,0.0,1.0))),1.2)+12.0*sin(PI*clampf((key-0.77)/0.23,0.0,1.0))
+					if property == "lean": value *= sin(TAU*key)
+				if action == "hop":
+					if property == "lift": value *= pow(absf(sin(PI*key*3)),1.2)
+					if property in ["drift","lean"]: value *= sin(TAU*key*1.5)
+					if property == "gait": value = 13.0*sin(TAU*key*3)*envelope
+				if action == "spin" and property == "turn": value = TAU*pow(sin(PI*key),2.0)
+				if action == "sway":
+					if property in ["drift","lean"]: value *= sin(TAU*key*2)
+					if property == "lift": value *= 0.5+0.5*cos(TAU*key*4)
 				if action == "swim":
 					if properties[index] == "drift": value *= sin(TAU*key)
 					if properties[index] == "lift": value *= sin(TAU*key*2)
@@ -59,7 +90,7 @@ func _init() -> void:
 					if properties[index] in ["drift","lean"]: value *= sin(TAU*key)
 					if properties[index] == "lift": value *= 1.0+0.22*sin(TAU*key*2)
 					if properties[index] == "spread": value *= 1.0+0.14*sin(TAU*key*2)
-				if action == "carry": value = values[index+1]
+				if action == "carry" and index < 5: value = values[index+1]
 				animation.track_insert_key(track,key*animation.length,value)
 		library.add_animation(action,animation)
 	player.add_animation_library(&"",library)
@@ -75,15 +106,16 @@ func _init() -> void:
 
 func advance_pose(delta: float) -> void:
 	phase += maxf(0.0,delta)
+	_attention = _attention.lerp(_attention_goal,1.0-exp(-maxf(0.0,delta)/0.22))
 	_lag_delta = maxf(0.0,delta)
 	sync_pose()
 	queue_redraw()
 
 func sync_pose() -> void:
 	var bob := sin(phase*TAU/4.8)*8.0
-	var center := CENTER + Vector2(drift,bob+lift)
-	var left := center+Vector2(-104-spread,28+sin(phase*1.31-0.5)*5+spread*-0.78)
-	var right := center+Vector2(104+spread,28+sin(phase*1.31-1.0)*5+spread*-0.78)
+	var center := CENTER + Vector2(drift+_attention.x*6,bob+lift-absf(_attention.y)*2)
+	var left := center+Vector2(-104-spread,28+sin(phase*1.31-0.5)*5+spread*-0.78+gait)
+	var right := center+Vector2(104+spread,28+sin(phase*1.31-1.0)*5+spread*-0.78-gait)
 	if not _secondary_ready:
 		_secondary_left = left
 		_secondary_right = right
@@ -93,7 +125,7 @@ func sync_pose() -> void:
 	_lag_delta = 0.0
 	parts = [
 		Transform2D(-0.17-spread*0.004+lean*0.65+sin(phase*1.3-0.5)*0.04,_secondary_left),
-		Transform2D(lean+sin(phase*TAU/4.8)*0.018,center),
+		Transform2D(lean+turn+sin(phase*TAU/4.8)*0.018+_attention.x*0.12,center),
 		Transform2D(0.22+spread*0.004+lean*0.7+sin(phase*1.3-1.0)*0.04,_secondary_right)
 	]
 
@@ -103,6 +135,9 @@ func deform_point(point: Vector2) -> Vector2:
 func set_growth(value: float) -> void:
 	_growth = clampf(value,0.0,1.0) if is_finite(value) else 0.0
 	queue_redraw()
+
+func set_desktop_attention(direction: Vector2) -> void:
+	_attention_goal = direction.limit_length(1.0) if direction.is_finite() else Vector2.ZERO
 
 func particle_count() -> int:
 	return 28 + floori(44.0*_growth)
@@ -125,6 +160,8 @@ func render_regions() -> Array[PackedVector2Array]:
 	# unrelated transparent gaps still pass through to the desktop.
 	var result: Array[PackedVector2Array] = []
 	result.append(_ellipse(parts[1].origin,Vector2(105,145),32))
+	# The core and its internal light seam rotate as one rigid object.
+	result.append(parts[1] * _ellipse(Vector2.ZERO,Vector2(72,126),32))
 	result.append(_ellipse(Vector2(220+drift,277),Vector2(51,10),24))
 	for index in [0,2]: result.append(parts[index] * (Transform2D(0,Vector2.ONE*1.10,0,Vector2.ZERO) * SHARD))
 	for index in range(ceili(28+44*_growth)):

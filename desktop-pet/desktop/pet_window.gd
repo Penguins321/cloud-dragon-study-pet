@@ -83,6 +83,9 @@ func usable_areas() -> Array[Rect2i]:
 		areas.append(DisplayServer.screen_get_usable_rect(screen))
 	return areas
 
+func pointer_busy() -> bool:
+	return _pressed or _dragging
+
 func restore_visible_position(saved: Vector2i) -> void:
 	var constrained := Geometry.restore_position(saved, _window.size, usable_areas())
 	if _window.position != constrained:

@@ -11,13 +11,14 @@ class Paths extends Node2D:
 			var rect: Rect2 = cell.rect
 			draw_style_box(_box(),rect)
 			var center: Vector2 = rect.position+Vector2(230,220)
-			for x in range(-150,151,50): draw_line(center+Vector2(x*1.1,-110),center+Vector2(x*1.1,83),Color(0.1,0.3,0.3,0.07),1)
-			for y in range(-100,76,25): draw_line(center+Vector2(-175,y*1.1),center+Vector2(175,y*1.1),Color(0.1,0.3,0.3,0.07),1)
+			var plot_scale: float = cell.get("plot_scale",1.1)
+			for x in range(-150,151,50): draw_line(center+Vector2(x*plot_scale,-110),center+Vector2(x*plot_scale,83),Color(0.1,0.3,0.3,0.07),1)
+			for y in range(-100,76,25): draw_line(center+Vector2(-175,y*plot_scale),center+Vector2(175,y*plot_scale),Color(0.1,0.3,0.3,0.07),1)
 			var colors := [Color("6b9bb9"),Color("2c8d83"),Color("c29346")]
 			for part in range(3):
 				var line := PackedVector2Array()
 				for frame in cell.frames:
-					line.append(center+(Vector2(frame.parts[part][0],frame.parts[part][1])-Vector2(220,133))*1.1)
+					line.append(center+(Vector2(frame.parts[part][0],frame.parts[part][1])-Vector2(220,133))*plot_scale)
 				draw_polyline(line,colors[part],2.1,true)
 				draw_circle(line[0],3.5,colors[part])
 				draw_arc(line[-1],6,0,TAU,24,colors[part],1.1,true)
@@ -30,8 +31,8 @@ class Paths extends Node2D:
 			for index in range(0,cell.frames.size(),3):
 				var frame: Dictionary = cell.frames[index]
 				var point := Vector2(frame.parts[1][0],frame.parts[1][1])+Vector2(0,-75).rotated(frame.parts[1][2])
-				tip.append(center+(point-Vector2(220,133))*1.1)
-			draw_polyline(tip,Color(0.25,0.6,0.5,0.28),1,true)
+				tip.append(center+(point-Vector2(220,133))*plot_scale)
+			if cell.action not in ["jump","hop"]: draw_polyline(tip,Color(0.25,0.6,0.5,0.28),1,true)
 	func _box() -> StyleBoxFlat:
 		var box := StyleBoxFlat.new()
 		box.bg_color = Color("f9faf5")
@@ -60,30 +61,38 @@ func _view(action: StringName):
 	return view
 
 func run() -> void:
-	root.size = Vector2i(1720,1630)
+	var new_only := OS.get_cmdline_user_args().has("--new-motions")
+	var actions: Array = ACTIONS
+	var names: Array = NAMES
+	var notes: Array = NOTES
+	if new_only:
+		actions = [&"walk",&"laugh",&"jump",&"hop",&"spin",&"sway"]
+		names = ["01  行走","02  捧腹大笑","03  跳跃","04  连跳","05  回旋","06  摇摆"]
+		notes = ["左右行进 · 玉片交替踏步","腹侧轻收 · 连续七轮俯仰颤动","蓄力下沉 → 腾空约 155 px → 缓冲落地","三次起跳 · 伴随横向移动","主核完整回旋再柔和回转","两轮宽幅左右荡漾 · 保持刚体"]
+	root.size = Vector2i(1720,1265 if new_only else 1630)
 	root.transparent_bg = false
 	RenderingServer.set_default_clear_color(Color("e9eee8"))
 	_label("温玉灵核 / 动作轨迹施工图",Vector2(30,20),32)
-	_label("实际运行采样 · 单位 px · 轨迹图按 1.1× 绘制 · 主核不变形 · 动作结束回悬浮，浮动相位不断开",Vector2(32,67),18)
+	_label("实际运行采样 · 单位 px · 主核不变形 · 动作结束回悬浮，浮动相位不断开",Vector2(32,67),18)
 	_label("蓝：左玉片   青：主核中心   金：右玉片   浅青：主核上端转向轨迹   ● 起点   ○ 终点   › 方向",Vector2(32,98),18)
 	var drawing := Paths.new()
 	root.add_child(drawing)
 	drawing.z_index = -1
 	var export_data: Array = []
-	for index in range(ACTIONS.size()):
+	for index in range(actions.size()):
 		var offset := Vector2(25+(index%2)*850,145+(index/2)*365)
-		var view = _view(ACTIONS[index])
+		var view = _view(actions[index])
 		view.visible = false
-		var duration: float = view.player.current_animation_length if ACTIONS[index] != &"dragging" else 4.0
+		var duration: float = view.player.current_animation_length if actions[index] != &"dragging" else 4.0
 		var frames: Array = []
 		var light = null
-		if ACTIONS[index] == &"breath":
+		if actions[index] == &"breath":
 			light = load("res://pet/effects/goal_light.gd").new()
 			root.add_child(light)
 			light.visible = false
 		var released := false
 		for sample in range(201):
-			if ACTIONS[index] == &"dragging" and sample >= 60 and not released:
+			if actions[index] == &"dragging" and sample >= 60 and not released:
 				view.play_action(&"idle")
 				released = true
 			if sample > 0: view._process(duration/200)
@@ -101,22 +110,22 @@ func run() -> void:
 			frames.append(frame)
 		if light != null: light.free()
 		view.free()
-		var cell := {"action":str(ACTIONS[index]),"duration":duration,"rect":Rect2(offset,Vector2(825,345)),"frames":frames}
+		var cell := {"action":str(actions[index]),"duration":duration,"rect":Rect2(offset,Vector2(825,345)),"frames":frames,"plot_scale":0.65 if new_only else 1.1}
 		drawing.data.append(cell)
-		export_data.append({"action":cell.action,"duration":duration,"frames":frames})
-		_label(NAMES[index]+"   /   %.1f s" % duration,offset+Vector2(18,13),23)
-		_label(NOTES[index],offset+Vector2(18,50),17)
+		export_data.append({"action":cell.action,"duration":duration,"frames":frames,"plot_scale":0.65 if new_only else 1.1})
+		_label(names[index]+"   /   %.1f s" % duration,offset+Vector2(18,13),23)
+		_label(notes[index],offset+Vector2(18,50),17)
 		_label("轨迹 / 方向",offset+Vector2(20,92),15)
 		_label("关键姿态  0% → 20% → 45% → 75% → 100%",offset+Vector2(420,92),14)
 		for pose_index in range(5):
 			var fraction: float = [0.0,0.2,0.45,0.75,1.0][pose_index]
-			var pose = _view(ACTIONS[index])
+			var pose = _view(actions[index])
 			for step in range(ceilf(duration*fraction*60)):
-				if ACTIONS[index] == &"dragging" and step == 72: pose.play_action(&"idle")
+				if actions[index] == &"dragging" and step == 72: pose.play_action(&"idle")
 				pose._process(1.0/60)
 			pose.scale = Vector2.ONE*0.23
 			pose.position = offset+Vector2(452+pose_index*72,197)-Vector2(220,133)*0.23
-			if ACTIONS[index] == &"breath":
+			if actions[index] == &"breath":
 				var effect = load("res://pet/effects/goal_light.gd").new()
 				root.add_child(effect)
 				effect.position = pose.position
@@ -124,12 +133,12 @@ func run() -> void:
 				effect.set_frame(pose.map_skin_point(pose.skin.breath_anchor)/0.23,1.0,duration*fraction,"学习目标")
 			_label("%.1f" % (duration*fraction),offset+Vector2(438+pose_index*72,265),14)
 		_label("每格 50 × 25 px · 伴生片跟随延迟 70 / 120 ms",offset+Vector2(23,316),14)
-	var output := FileAccess.open("res://docs/screenshots/jade-motion-trajectories.json",FileAccess.WRITE)
+	var output := FileAccess.open(("res://docs/screenshots/new-motion-trajectories-v0.11.json" if new_only else "res://docs/screenshots/jade-motion-trajectories.json"),FileAccess.WRITE)
 	output.store_string(JSON.stringify({"units":"px, radians","source":"runtime sampled at 201 time points per action","actions":export_data}))
 	output.close()
 	await process_frame
 	await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://docs/screenshots/jade-motion-blueprint.png")
+	root.get_texture().get_image().save_png(("res://docs/screenshots/new-motion-blueprint-v0.11.png" if new_only else "res://docs/screenshots/jade-motion-blueprint.png"))
 	print("Motion blueprint and runtime trajectory samples exported")
 	quit()
