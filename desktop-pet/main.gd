@@ -49,7 +49,7 @@ func _ready() -> void:
 	panel = preload("res://ui/plan_panel.tscn").instantiate()
 	panel_window = _make_window("学习计划", panel, Vector2i(410, 610))
 	settings = preload("res://ui/settings_panel.tscn").instantiate()
-	settings_window = _make_window("设置", settings, Vector2i(410, 560))
+	settings_window = _make_window("设置", settings, Vector2i(480, 660))
 	panel.complete_requested.connect(_complete)
 	panel.next_requested.connect(_next)
 	panel.content_replace_requested.connect(_replace)

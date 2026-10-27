@@ -76,7 +76,7 @@ static func run(tree: SceneTree, check: Callable, skin_path: String = "res://pet
 	settings.free()
 
 static func _find_tiny(node: Node) -> Button:
-	if node is Button and node.text == "更小":
+	if node is Button and node.text.contains("更小"):
 		return node
 	for child in node.get_children():
 		var found := _find_tiny(child)
