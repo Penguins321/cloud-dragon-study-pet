@@ -6,13 +6,17 @@ Windows x64 离线桌面学习伙伴。半透明玉核、独立伴生玉片、�
 
 ## 安装与分享
 
-当前版本 **v0.9**。分发文件位于 `desktop-pet/build/dist/`：
+当前版本 **v0.10**。分发文件位于 `desktop-pet/build/dist/`：
 
-- `WarmJade-v0.9-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
-- `WarmJade-v0.9-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
+- `WarmJade-v0.10-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
+- `WarmJade-v0.10-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
 - `SHA256SUMS.txt`：供分发核验文件完整性。
 
 安装仅针对当前用户，不要求管理员权限。卸载保留学习进度。安装包与程序尚未签名；构建与验证范围见 [打包说明](desktop-pet/packaging/README.md)。生成的二进制不提交 Git。
+
+## 粒子成长
+
+玉核从开始就具备内部晶纹、通透层次和折光高光。成长只让粒子从 28 枚渐增到 72 枚，并增强微光；默认累计 40 小时有效陪伴达到上限。隐藏、休眠和离线不累计，退出时保存进度，不掉级。
 
 ## 操作
 

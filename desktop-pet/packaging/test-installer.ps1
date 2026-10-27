@@ -1,7 +1,7 @@
-param()
+param([string]$Version = '0.10')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path (Split-Path $PSScriptRoot)
-$setup = Join-Path $root 'desktop-pet/build/dist/WarmJade-v0.9-Setup.exe'
+$setup = Join-Path $root "desktop-pet/build/dist/WarmJade-v$Version-Setup.exe"
 $testDir = Join-Path $root ('.tools/installer-test 中文 ' + [guid]::NewGuid().ToString('N'))
 $beforeRegistry = (Get-ItemProperty 'HKCU:\Software\WarmJade' -ErrorAction SilentlyContinue | Out-String)
 $shortcuts = @((Join-Path ([Environment]::GetFolderPath('Desktop')) '温玉灵核.lnk'), (Join-Path ([Environment]::GetFolderPath('Programs')) '温玉灵核'), (Join-Path ([Environment]::GetFolderPath('Startup')) 'WarmJadeStudyCompanion.lnk'))
@@ -11,9 +11,9 @@ if ($p.ExitCode -ne 0) { throw "Install failed: $($p.ExitCode)" }
 foreach ($name in @('WarmJade.exe','Uninstall.exe','GODOT-LICENSE.txt','GODOT-THIRD-PARTY.json','.warmjade-test')) {
     if (!(Test-Path -LiteralPath (Join-Path $testDir $name))) { throw "Missing installed $name" }
 }
-if ((Get-FileHash (Join-Path $testDir 'WarmJade.exe')).Hash -ne (Get-FileHash (Join-Path $root 'desktop-pet/build/WarmJadePrototype-v0.9.exe')).Hash) { throw 'Installed payload mismatch' }
+if ((Get-FileHash (Join-Path $testDir 'WarmJade.exe')).Hash -ne (Get-FileHash (Join-Path $root "desktop-pet/build/WarmJadePrototype-v$Version.exe")).Hash) { throw 'Installed payload mismatch' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $root 'desktop-pet/build/dist/WarmJade-v0.9-Portable.zip'))
+$zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $root "desktop-pet/build/dist/WarmJade-v$Version-Portable.zip"))
 try {
     $entry = $zip.GetEntry('WarmJade.exe')
     if (!$entry) { throw 'Portable ZIP missing executable' }

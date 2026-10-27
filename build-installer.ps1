@@ -1,6 +1,8 @@
-param([string]$Version = '0.9')
+param([string]$Version = '0.10')
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+(\.\d+)?$') { throw 'Version must be numeric.' }
+$parsedVersion = [version]$Version
+$versionQuad = '{0}.{1}.{2}.0' -f $parsedVersion.Major,$parsedVersion.Minor,[Math]::Max(0,$parsedVersion.Build)
 $compiler = Join-Path $PSScriptRoot '.tools/nsis-3.11/makensis.exe'
 if (!(Test-Path $compiler)) { throw 'Run ./setup-installer-tools.ps1 first.' }
 $build = Join-Path $PSScriptRoot 'desktop-pet/build'
@@ -17,7 +19,7 @@ Copy-Item -LiteralPath $payload -Destination (Join-Path $stage 'WarmJade.exe')
 Copy-Item -LiteralPath (Join-Path $build 'GODOT-LICENSE.txt'), (Join-Path $build 'GODOT-THIRD-PARTY.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'desktop-pet/packaging/使用说明.txt') -Destination $stage
 $payload = Join-Path $stage 'WarmJade.exe'
-& $compiler /INPUTCHARSET UTF8 /V3 "/DROOT=$PSScriptRoot" "/DPAYLOAD=$payload" "/DOUTPUT=$setup" "/DVERSION=$Version" (Join-Path $PSScriptRoot 'desktop-pet/packaging/warm-jade.nsi')
+& $compiler /INPUTCHARSET UTF8 /V3 "/DROOT=$PSScriptRoot" "/DPAYLOAD=$payload" "/DOUTPUT=$setup" "/DVERSION=$Version" "/DVERSION_QUAD=$versionQuad" (Join-Path $PSScriptRoot 'desktop-pet/packaging/warm-jade.nsi')
 if ($LASTEXITCODE -ne 0) { throw "NSIS failed: $LASTEXITCODE" }
 $zip = Join-Path $dist "WarmJade-v$Version-Portable.zip"
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force

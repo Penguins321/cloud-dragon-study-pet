@@ -1,4 +1,4 @@
-﻿Unicode true
+Unicode true
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
@@ -8,7 +8,7 @@ OutFile "${OUTPUT}"
 InstallDir "$LOCALAPPDATA\Programs\WarmJade"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
-VIProductVersion "0.9.0.0"
+VIProductVersion "${VERSION_QUAD}"
 VIAddVersionKey /LANG=2052 "ProductName" "温玉灵核"
 VIAddVersionKey /LANG=2052 "FileDescription" "温玉灵核安装程序"
 VIAddVersionKey /LANG=2052 "FileVersion" "${VERSION}"
