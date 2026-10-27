@@ -1,38 +1,41 @@
-# 云龙学习搭子
+# 温玉灵核学习搭子
 
-面向 Windows 的桌面学习伙伴，使用 Godot 与 GDScript 开发。玉骨天龙通过云雾吐息展示当前学习目标，用户手动完成任务并推进下一项。
+Windows x64 离线桌面学习伙伴。半透明玉核、独立伴生玉片、连续悬浮动作和光影粒子；“引光”展开短暂光笺，显示当前学习目标。
 
-![玉骨天龙云雾吐息（实际运行渲染）](desktop-pet/docs/screenshots/jade-dragon-breath-v1.gif)
+![水晶玉核材质](desktop-pet/docs/screenshots/jade-crystal-material.png)
 
-## 当前状态
+## 安装与分享
 
-当前 v0.5：透明宠物窗口、玉骨天龙皮肤、云雾吐息、右键菜单、学习清单编辑、手动完成与推进、本地保存、大小设置，以及托盘接线。今日目标平时隐藏，吐息成雾后短暂显示，结束后消散。
+当前版本 **v0.9**。分发文件位于 `desktop-pet/build/dist/`：
 
-皮肤、姿态与动画独立于学习逻辑，普通控件使用独立 Theme。玉骨天龙重新绑定 46 个控制关节，保留头骨和角的刚性，增加独立眨眼、五组身体鬃毛、双须、五段尾部及分束尾焰。新旧皮肤复用语义动作与风动驱动；换色无需复制动作。
+- `WarmJade-v0.9-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
+- `WarmJade-v0.9-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
+- `SHA256SUMS.txt`：供分发核验文件完整性。
 
-左键依次切换游动、抬头、舒展、收拢、欢腾、吐息；右键打开菜单，可直接选择今日目标、学习计划或设置。默认朝左，吐息沿左上 45° 扩散。支持 50% / 75% / 100% / 125%，拖动每帧限制完整窗口在屏幕工作区内。178 项自动检查通过，实际渲染与导出范围见验证记录。真实鼠标穿透、多屏、DPI 与 Windows 10 的实机验收尚未完成。
+安装仅针对当前用户，不要求管理员权限。卸载保留学习进度。安装包与程序尚未签名；构建与验证范围见 [打包说明](desktop-pet/packaging/README.md)。生成的二进制不提交 Git。
 
-**C 玉骨天龙**已替换默认运行形象，见[细化图与结构归档](assets/cloud-dragon/redesigns/2026-10-22-jade-dragon/README.md)及[绑定与动作复用规则](desktop-pet/docs/jade-dragon-v1.md)。完整全身受力求解、分层遮挡交换与更复杂收势仍以[全身动作规格](docs/superpowers/specs/2026-10-22-jade-dragon-whole-body-motion.md)追踪；当前参数驱动动作不代表该完整规格已完成。
+## 操作
 
-自启动、安装器、清单分享、用户备份恢复界面与完整多视角分层动作尚未实现，原型中明确标记对应功能状态。
+轻点依次预览巡游、感知、舒展、收息、共鸣、引光；按住拖动。右键进入学习计划、设置或退出。点击引光光笺打开计划，完成当前项后手动推进下一项。
 
-## 目录
+设置页支持开机自启动、50% / 75% / 100% / 125% 大小和动作预览，采用浅玉色分组布局。安装版使用固定程序名，升级前先退出旧版。数据保存在 `%APPDATA%\CloudDragonStudyPrototype`，不要把个人数据一起打包给别人。
 
-- `desktop-pet/`：Godot 项目、测试和开发说明。
-- `assets/cloud-dragon/`：角色候选、用户选定的原始参考、界面原型与来源记录。
-- `docs/superpowers/`：需求、界面拆解、实施计划与执行记录。
-- `build-prototype.ps1`、`test-prototype.ps1`：本地构建与回归检查入口。
+## 开发与验证
 
-详细操作与架构见 [项目说明](desktop-pet/README.md)，实测范围见 [验证记录](desktop-pet/docs/verification.md)。
+```powershell
+./setup-dev.ps1
+./test-prototype.ps1
+./build-prototype.ps1
+./setup-installer-tools.ps1
+./build-installer.ps1
+./desktop-pet/packaging/test-installer.ps1
+```
 
-## 开发
+使用 Godot 4.7.2 标准版打开 `desktop-pet/project.godot`。本地开发可运行“启动温玉灵核.cmd”。本地引擎、编译器、下载包、导出程序及测试数据位于忽略目录，不纳入 Git。
 
-换电脑从 [HANDOFF.md](HANDOFF.md) 开始。准备 Git 与 Python 3.10+，克隆后运行 `./setup-dev.ps1`，自动准备固定版本引擎与 Windows 调试模板；再运行 `./test-prototype.ps1` 和 `./build-prototype.ps1`。使用 Godot 4.7.2 标准版打开 `desktop-pet/project.godot`。
+- [项目操作与模块说明](desktop-pet/README.md)
+- [全部动作轨迹及水晶材质](desktop-pet/docs/jade-motion-v0.8.md)
+- [设置页优化](desktop-pet/docs/settings-v0.9.md)
+- [形象设计资料](assets/companions/warm-jade-core/2026-10-26/README.md)
 
-当前产物为 `desktop-pet/build/CloudDragonPrototype-v0.5.exe`；双击“启动云龙原型.cmd”运行。启动新版前先从旧版托盘退出。旧云龙动作基线见 [v3 风动手册](desktop-pet/docs/wind-and-tail-v3.md)，旧姿态候选保留在 [poses](assets/cloud-dragon/poses/README.md)。开源项目参考见 [调研笔记](docs/research/desktop-pet-projects.md)。
-
-本地引擎、下载包、导出程序、测试数据、用户数据和原始运行日志不纳入 Git。界面截图及设计素材保留在仓库。正常用户数据位于用户目录，不应提交。
-
-## 资源与许可
-
-角色素材由本项目设计探索产生，仍为待校验候选；生成与修改来源记录在相应素材目录。Godot 引擎及其第三方依赖的许可说明在构建阶段生成，并应随可执行程序一起分发。本项目尚未选择对外开源许可证。
+Godot 引擎与第三方许可随安装版和便携版分发。本项目尚未选择对外开源许可证。旧云龙 / 玉龙实现与历史设计档案保留，但不作为当前默认形象。
