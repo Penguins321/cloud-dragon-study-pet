@@ -4,7 +4,7 @@ func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
-	root.size = Vector2i(480,660)
+	root.size = Vector2i(480,720)
 	root.transparent_bg = false
 	RenderingServer.set_default_clear_color(Color("eff4ef"))
 	var panel = load("res://ui/settings_panel.tscn").instantiate()
@@ -15,21 +15,21 @@ func run() -> void:
 	await process_frame
 	await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://docs/screenshots/settings-jade-v0.13.png")
+	root.get_texture().get_image().save_png("res://docs/screenshots/settings-jade-v0.14.png")
 	root.size = Vector2i(360,420)
 	await process_frame
 	await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://docs/screenshots/settings-jade-compact-v0.13.png")
-	root.size = Vector2i(480,660)
+	root.get_texture().get_image().save_png("res://docs/screenshots/settings-jade-compact-v0.14.png")
+	root.size = Vector2i(480,720)
 	panel.set_startup_state(false,false,"请在导出的程序中设置自启动，开发模式不修改系统配置。")
 	await process_frame
 	await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://docs/screenshots/settings-jade-disabled-v0.13.png")
+	root.get_texture().get_image().save_png("res://docs/screenshots/settings-jade-disabled-v0.14.png")
 	panel.set_appearance("flame","ember")
 	await process_frame
 	await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://docs/screenshots/settings-flame-v0.13.png")
+	root.get_texture().get_image().save_png("res://docs/screenshots/settings-flame-v0.14.png")
 	quit()
