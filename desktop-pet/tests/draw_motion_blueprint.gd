@@ -62,6 +62,7 @@ func _view(action: StringName):
 
 func run() -> void:
 	var new_only := OS.get_cmdline_user_args().has("--new-motions")
+	var refined := OS.get_cmdline_user_args().has("--refined-motions")
 	var actions: Array = ACTIONS
 	var names: Array = NAMES
 	var notes: Array = NOTES
@@ -69,7 +70,12 @@ func run() -> void:
 		actions = [&"walk",&"laugh",&"jump",&"hop",&"spin",&"sway"]
 		names = ["01  行走","02  捧腹大笑","03  跳跃","04  连跳","05  回旋","06  摇摆"]
 		notes = ["左右行进 · 玉片交替踏步","腹侧轻收 · 连续七轮俯仰颤动","蓄力下沉 → 腾空约 155 px → 缓冲落地","三次起跳 · 伴随横向移动","主核完整回旋再柔和回转","两轮宽幅左右荡漾 · 保持刚体"]
-	root.size = Vector2i(1720,1265 if new_only else 1630)
+	if refined:
+		actions = [&"walk",&"laugh",&"jump",&"bow",&"roll",&"dance"]
+		names = ["01  行走 · 蓄势踏步","02  大笑 · 蓄气颤动","03  跳跃 · 蓄力腾空","04  鞠躬 · 倾身致意","05  翻滚 · 腾空一周","06  舞蹈 · 左右应和"]
+		notes = ["预备下沉 → 六轮交替踏步 → 轻缓收势", "蓄气下沉 → 七轮欢快颤动 → 呼气归位", "蓄力下沉 → 腾空约 155 px → 缓冲落地", "微微后仰 → 深倾停留 → 回弹归正", "反向蓄势 → 腾空翻转 360° → 落地回悬浮", "左右四拍踏步 → 双片交替应和 → 展开收势"]
+	var compact := new_only or refined
+	root.size = Vector2i(1720,1265 if compact else 1630)
 	root.transparent_bg = false
 	RenderingServer.set_default_clear_color(Color("e9eee8"))
 	_label("温玉灵核 / 动作轨迹施工图",Vector2(30,20),32)
@@ -110,9 +116,9 @@ func run() -> void:
 			frames.append(frame)
 		if light != null: light.free()
 		view.free()
-		var cell := {"action":str(actions[index]),"duration":duration,"rect":Rect2(offset,Vector2(825,345)),"frames":frames,"plot_scale":0.65 if new_only else 1.1}
+		var cell := {"action":str(actions[index]),"duration":duration,"rect":Rect2(offset,Vector2(825,345)),"frames":frames,"plot_scale":0.65 if compact else 1.1}
 		drawing.data.append(cell)
-		export_data.append({"action":cell.action,"duration":duration,"frames":frames,"plot_scale":0.65 if new_only else 1.1})
+		export_data.append({"action":cell.action,"title":names[index],"note":notes[index],"duration":duration,"frames":frames,"plot_scale":0.65 if compact else 1.1})
 		_label(names[index]+"   /   %.1f s" % duration,offset+Vector2(18,13),23)
 		_label(notes[index],offset+Vector2(18,50),17)
 		_label("轨迹 / 方向",offset+Vector2(20,92),15)
@@ -133,12 +139,12 @@ func run() -> void:
 				effect.set_frame(pose.map_skin_point(pose.skin.breath_anchor)/0.23,1.0,duration*fraction,"学习目标")
 			_label("%.1f" % (duration*fraction),offset+Vector2(438+pose_index*72,265),14)
 		_label("每格 50 × 25 px · 伴生片跟随延迟 70 / 120 ms",offset+Vector2(23,316),14)
-	var output := FileAccess.open(("res://docs/screenshots/new-motion-trajectories-v0.11.json" if new_only else "res://docs/screenshots/jade-motion-trajectories.json"),FileAccess.WRITE)
+	var output := FileAccess.open(("res://docs/screenshots/refined-motion-blueprint-v0.13.json" if refined else "res://docs/screenshots/new-motion-trajectories-v0.11.json" if new_only else "res://docs/screenshots/jade-motion-trajectories.json"),FileAccess.WRITE)
 	output.store_string(JSON.stringify({"units":"px, radians","source":"runtime sampled at 201 time points per action","actions":export_data}))
 	output.close()
 	await process_frame
 	await process_frame
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png(("res://docs/screenshots/new-motion-blueprint-v0.11.png" if new_only else "res://docs/screenshots/jade-motion-blueprint.png"))
+	root.get_texture().get_image().save_png(("res://docs/screenshots/refined-motion-blueprint-v0.13.png" if refined else "res://docs/screenshots/new-motion-blueprint-v0.11.png" if new_only else "res://docs/screenshots/jade-motion-blueprint.png"))
 	print("Motion blueprint and runtime trajectory samples exported")
 	quit()

@@ -3,17 +3,20 @@ extends SceneTree
 var views: Array[Node2D] = []
 var elapsed := 0.0
 var _capturing := false
-const ACTIONS := [&"walk", &"laugh", &"jump", &"hop", &"spin", &"sway"]
+var actions := [&"walk", &"laugh", &"jump", &"hop", &"spin", &"sway"]
 
 func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
+	var refined := OS.get_cmdline_user_args().has("--refined")
+	if refined: actions = [&"walk", &"laugh", &"jump", &"bow", &"roll", &"dance"]
 	root.size = Vector2i(1200,760)
 	root.transparent_bg = false
 	RenderingServer.set_default_clear_color(Color("e7ece6"))
 	var titles := ["行走 · 交替踏步", "捧腹大笑 · 欢快颤动", "跳跃 · 蓄力腾空", "连跳 · 轻盈三连", "回旋 · 玉核转动", "摇摆 · 左右荡漾"]
-	for index in range(ACTIONS.size()):
+	if refined: titles = ["行走 · 蓄势踏步", "大笑 · 蓄气颤动", "跳跃 · 蓄力腾空", "鞠躬 · 倾身致意", "翻滚 · 腾空一周", "舞蹈 · 左右应和"]
+	for index in range(actions.size()):
 		var origin := Vector2((index%3)*400,(index/3)*380)
 		var background := ColorRect.new()
 		background.position = origin+Vector2(8,8)
@@ -26,7 +29,7 @@ func run() -> void:
 		view.set_process(false)
 		view.scale = Vector2.ONE*0.72
 		view.position = origin+Vector2(200,250)-Vector2(220,133)*0.72
-		view.select_action(ACTIONS[index])
+		view.select_action(actions[index])
 		views.append(view)
 		var label := Label.new()
 		label.text = titles[index]
@@ -36,7 +39,7 @@ func run() -> void:
 		root.add_child(label)
 	if OS.get_cmdline_user_args().has("--snapshot"):
 		_capturing = true
-		var fractions := [0.28,0.38,0.49,0.5,0.16,0.3]
+		var fractions := [0.28,0.38,0.49,0.45,0.42,0.51] if refined else [0.28,0.38,0.49,0.5,0.16,0.3]
 		for index in range(views.size()):
 			var duration: float = views[index].player.current_animation_length
 			for step in range(ceili(duration*fractions[index]*60)):
@@ -44,7 +47,7 @@ func run() -> void:
 		await process_frame
 		await process_frame
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://docs/screenshots/big-motion-v0.11.png")
+		root.get_texture().get_image().save_png("res://docs/screenshots/refined-motion-v0.13.png" if refined else "res://docs/screenshots/big-motion-v0.11.png")
 		quit()
 
 func _process(delta: float) -> bool:
@@ -52,5 +55,5 @@ func _process(delta: float) -> bool:
 	elapsed += delta
 	for index in range(views.size()):
 		views[index]._process(delta)
-		if views[index].current_action == &"idle": views[index].select_action(ACTIONS[index])
+		if views[index].current_action == &"idle": views[index].select_action(actions[index])
 	return false
