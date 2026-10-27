@@ -16,6 +16,11 @@ var _secondary_right := Vector2.ZERO
 var _lag_delta := 0.0
 var _secondary_ready := false
 var _growth := 0.0
+const Appearance = preload("res://pet/appearance.gd")
+var appearance_style := "jade"
+var appearance_color := "jade"
+var _tint := Color("79bca9")
+var _light := Color(1,0.91,0.64)
 var _attention := Vector2.ZERO
 var _attention_goal := Vector2.ZERO
 const CENTER := Vector2(220, 133)
@@ -42,7 +47,29 @@ func _init() -> void:
 		"jump": [4.4,0.12,24.0,-155.0,0.0,1.0],
 		"hop": [5.4,0.16,18.0,-95.0,36.0,0.8],
 		"spin": [6.0,0.0,52.0,-24.0,0.0,1.0],
-		"sway": [6.4,0.44,14.0,-14.0,58.0,0.6]
+		"sway": [6.4,0.44,14.0,-14.0,58.0,0.6],
+		"bow": [5.2,0.0,0.0,0.0,0.0,0.0],
+		"roll": [5.8,0.0,0.0,0.0,0.0,0.0],
+		"dance": [6.6,0.0,0.0,0.0,0.0,0.0]
+	}
+	# Authored beats: anticipation, clear gesture, overshoot, then quiet hover.
+	# Columns are time, lean, spread, lift, drift, energy, gait, turn.
+	var choreography := {
+		"bow": [
+			[0.0,0,0,0,0,0,0,0], [0.16,-0.16,12,-12,-5,0.3,-8,0],
+			[0.38,0.76,26,30,17,0.55,15,0], [0.58,0.76,26,30,17,0.55,15,0],
+			[0.80,-0.09,9,-8,-3,0.2,-5,0], [1.0,0,0,0,0,0,0,0]],
+		"roll": [
+			[0.0,0,0,0,0,0,0,0], [0.17,-0.22,-12,24,-18,0.35,-9,-0.18],
+			[0.32,0.06,42,-78,-10,0.85,16,0.6], [0.52,0.0,58,-105,38,1.0,-18,PI],
+			[0.76,0.08,44,-48,18,0.8,12,TAU], [0.86,-0.13,10,18,-5,0.35,-7,TAU],
+			[1.0,0,0,0,0,0,0,0]],
+		"dance": [
+			[0.0,0,0,0,0,0,0,0], [0.12,-0.14,-6,14,-12,0.3,-9,0],
+			[0.25,0.32,22,-30,48,0.8,27,0.16], [0.38,-0.30,34,-10,-48,0.85,-27,-0.16],
+			[0.51,0.34,22,-36,52,1.0,29,0.2], [0.64,-0.32,34,-14,-52,0.85,-29,-0.2],
+			[0.78,0.0,46,-42,0,1.0,0,0], [0.88,0.10,6,12,8,0.3,6,0],
+			[1.0,0,0,0,0,0,0,0]]
 	}
 	for action: String in poses:
 		var values: Array = poses[action]
@@ -54,7 +81,7 @@ func _init() -> void:
 		for index in properties.size():
 			var track := animation.add_track(Animation.TYPE_VALUE)
 			animation.track_set_path(track,NodePath(".:" + properties[index]))
-			animation.track_set_interpolation_type(track,Animation.INTERPOLATION_LINEAR)
+			animation.track_set_interpolation_type(track,Animation.INTERPOLATION_LINEAR_ANGLE if properties[index] == "turn" else Animation.INTERPOLATION_LINEAR)
 			for sample in range(61):
 				var key := sample / 60.0
 				var envelope := smoothstep(0.0,0.20,key) * (1.0-smoothstep(0.74,1.0,key))
@@ -63,13 +90,19 @@ func _init() -> void:
 				var property: String = properties[index]
 				if action == "walk":
 					if property == "drift": value *= sin(TAU*key)
-					if property == "lean": value *= sin(TAU*key*6)
+					if property == "lean": value *= 1.5*sin(TAU*key*6)
 					if property == "lift": value *= absf(sin(TAU*key*6))
 					if property == "gait": value = 22.0*sin(TAU*key*6)*envelope
 				if action == "laugh":
 					if property == "lean": value *= sin(TAU*key*7)
 					if property == "lift": value *= 0.5+0.5*cos(TAU*key*14)
 					if property == "gait": value = 7.0*sin(TAU*key*7)*envelope
+				if action in ["walk", "laugh"] and property == "lift":
+					# A preparatory dip makes the first step/chuckle feel weighted;
+					# a smaller landing pulse releases that energy into hover.
+					value *= smoothstep(0.16,0.25,key)
+					value += 15.0*sin(PI*clampf(key/0.20,0.0,1.0))
+					value += 7.0*sin(PI*clampf((key-0.82)/0.18,0.0,1.0))
 				if action == "jump":
 					if property == "lift": value = 23.0*smoothstep(0.0,0.16,key)*(1.0-smoothstep(0.16,0.28,key))-155.0*pow(maxf(0.0,sin(PI*clampf((key-0.24)/0.53,0.0,1.0))),1.2)+12.0*sin(PI*clampf((key-0.77)/0.23,0.0,1.0))
 					if property == "lean": value *= sin(TAU*key)
@@ -91,6 +124,21 @@ func _init() -> void:
 					if properties[index] == "lift": value *= 1.0+0.22*sin(TAU*key*2)
 					if properties[index] == "spread": value *= 1.0+0.14*sin(TAU*key*2)
 				if action == "carry" and index < 5: value = values[index+1]
+				if choreography.has(action):
+					var beats: Array = choreography[action]
+					for beat in range(1,beats.size()):
+						if key <= beats[beat][0]:
+							var before: Array = beats[beat-1]
+							var after: Array = beats[beat]
+							var blend := smoothstep(before[0],after[0],key)
+							# 2π and zero are the same hover orientation. Keep the
+							# completed roll through the landing, then ease its lean.
+							var target: float = after[index+1]
+							if action == "roll" and property == "turn" and beat == beats.size()-1:
+								target = TAU
+							value = lerpf(before[index+1],target,blend)
+							break
+					if key == 1.0: value = 0.0
 				animation.track_insert_key(track,key*animation.length,value)
 		library.add_animation(action,animation)
 	player.add_animation_library(&"",library)
@@ -136,11 +184,48 @@ func set_growth(value: float) -> void:
 	_growth = clampf(value,0.0,1.0) if is_finite(value) else 0.0
 	queue_redraw()
 
+func set_appearance(style: String, color: String) -> void:
+	appearance_style = Appearance.style_id(style)
+	appearance_color = Appearance.color_id(color)
+	_tint = Appearance.tint(appearance_color)
+	_light = Color(1,0.91,0.64) if appearance_color in ["jade","amber"] else _tint.lightened(0.65)
+	if appearance_style == "flame": _light = _tint.lightened(0.78)
+	glow.gradient.colors = PackedColorArray([Color(_light,0.7),Color(_light,0.28),Color(_light,0.06),Color(_light,0.0)])
+	queue_redraw()
+
+func facet_colors() -> Array[Color]:
+	var alpha := 0.64
+	if appearance_style == "glass": alpha = 0.39
+	if appearance_style == "opal": alpha = 0.72
+	if appearance_style == "flame": alpha = 0.45
+	var base := _tint
+	if appearance_style == "opal":
+		var rainbow := Color.from_hsv(fposmod(_tint.h+0.12*sin(phase*0.38),1.0),0.40,0.94)
+		base = base.lerp(rainbow,0.55)
+	return [Color(base.lightened(0.43),alpha),Color(base.darkened(0.26),alpha-0.05),Color(base,alpha+0.04),Color(base.lightened(0.24),alpha-0.02)]
+
 func set_desktop_attention(direction: Vector2) -> void:
 	_attention_goal = direction.limit_length(1.0) if direction.is_finite() else Vector2.ZERO
 
 func particle_count() -> int:
 	return 28 + floori(44.0*_growth)
+
+func flame_particle_count() -> int:
+	return 96+floori(40.0*_growth) if appearance_style == "flame" else 0
+
+func flame_particle(index: int) -> Dictionary:
+	# Analytic particles avoid one scene node per spark and loop without a burst.
+	# The fade is zero at both lifetime boundaries, so respawning is invisible.
+	var satellite := index%5 == 0 or index%5 == 1
+	var origin: Vector2 = parts[0 if index%5 == 0 else 2].origin if satellite else parts[1].origin
+	var size_scale := 0.43 if satellite else 1.0
+	var age := fposmod(phase*(0.62+float(index%7)*0.017)+index*0.618034,1.0)
+	var seed := sin(index*17.31)
+	var column := seed*(1.0-age)*40.0
+	var flutter := sin(age*9.0+phase*2.2+index)*12.0*age
+	var point := origin+Vector2(column+flutter,85.0-age*250.0)*size_scale
+	var alpha := pow(sin(PI*age),1.3)*(0.48+0.18*maxf(0.0,energy))
+	return {"position":point,"alpha":clampf(alpha,0.0,1.0),"age":age,"size":Vector2(4.0+sin(PI*age)*4.5,10.0+sin(PI*age)*13.0)*size_scale}
 
 func _particle_visibility(index: int) -> float:
 	# New motes emerge gradually rather than popping in at a level boundary.
@@ -164,6 +249,10 @@ func render_regions() -> Array[PackedVector2Array]:
 	result.append(parts[1] * _ellipse(Vector2.ZERO,Vector2(72,126),32))
 	result.append(_ellipse(Vector2(220+drift,277),Vector2(51,10),24))
 	for index in [0,2]: result.append(parts[index] * (Transform2D(0,Vector2.ONE*1.10,0,Vector2.ZERO) * SHARD))
+	if appearance_style == "flame":
+		# Bound each emitter as a whole instead of unioning 136 moving spark shapes.
+		result.append(_ellipse(parts[1].origin+Vector2(0,-35),Vector2(80,170),32))
+		for index in [0,2]: result.append(_ellipse(parts[index].origin+Vector2(0,-15),Vector2(36,76),24))
 	for index in range(ceili(28+44*_growth)):
 		var point := _particle_position(index)
 		var radius := 9.0+3.0*_growth
@@ -192,11 +281,13 @@ func _draw() -> void:
 		draw_set_transform(Vector2(220+drift,277),0,Vector2(1,0.16))
 		draw_circle(Vector2.ZERO,24.0+ring*2.0,Color(0.18,0.24,0.19,0.009))
 	draw_set_transform(Vector2.ZERO)
+	if appearance_style == "flame": _draw_flames(false)
 	for index in [0,2,1]:
 		var part := parts[index]
 		draw_set_transform(part.origin,part.get_rotation())
 		_draw_stone(CORE if index == 1 else SHARD,index == 1,bright)
 	draw_set_transform(Vector2.ZERO)
+	if appearance_style == "flame": _draw_flames(true)
 	# Deterministic, looping dust: fade in/out at respawn; never pop or accumulate.
 	for index in range(ceili(28+44*_growth)):
 		var age := fposmod(phase*0.16+index*0.417219,1.0)
@@ -205,15 +296,29 @@ func _draw() -> void:
 		var radius := (0.75+float(index%3)*0.45)*(1.0+_growth*0.3)
 		var halo := 7.0+3.0*_growth
 		draw_texture_rect(glow,Rect2(point-Vector2.ONE*halo,Vector2.ONE*halo*2),false,Color(1,1,1,alpha))
-		draw_circle(point,radius,Color(1,0.94,0.72,alpha))
+		draw_circle(point,radius,Color(_light.lightened(0.18),alpha))
 		if index%6 == 0:
 			draw_line(point-Vector2(3+_growth,0),point+Vector2(3+_growth,0),Color(1,0.97,0.81,alpha),0.7,true)
 			draw_line(point-Vector2(0,4+_growth),point+Vector2(0,4+_growth),Color(1,0.97,0.81,alpha),0.7,true)
 
+func _draw_flames(foreground: bool) -> void:
+	for index in range(flame_particle_count()):
+		if (index%3 == 0) != foreground: continue
+		var particle := flame_particle(index)
+		var point: Vector2 = particle.position
+		var extent: Vector2 = particle.size
+		var alpha: float = particle.alpha
+		var hue := _tint.lerp(_light,0.12+0.43*(1.0-particle.age))
+		draw_texture_rect(glow,Rect2(point-extent*1.4,extent*2.8),false,Color(_tint,alpha*0.36))
+		# A tapered luminous tongue, not a soft smoke disk.
+		var tongue := PackedVector2Array([point+Vector2(0,-extent.y),point+Vector2(extent.x*0.7,-extent.y*0.1),point+Vector2(extent.x,extent.y*0.35),point+Vector2(0,extent.y*0.65),point+Vector2(-extent.x,extent.y*0.35),point+Vector2(-extent.x*0.6,-extent.y*0.1)])
+		draw_colored_polygon(tongue,Color(hue,alpha))
+		draw_line(point+Vector2(0,extent.y*0.3),point-Vector2(0,extent.y*0.4),Color(_light,alpha*0.85),maxf(0.7,extent.x*0.3),true)
+
 func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void:
 	var hub := Vector2(0,5) if core else Vector2(1,0)
 	# Translucent jade, cool refraction at the edges and a warm lit interior.
-	var colors := [Color(0.71,0.92,0.88,0.65),Color(0.29,0.64,0.65,0.60),Color(0.48,0.77,0.70,0.69),Color(0.80,0.93,0.80,0.62)]
+	var colors := facet_colors()
 	for index in range(4):
 		var tint: Color = colors[index].lightened(bright*0.035)
 		draw_polygon(PackedVector2Array([outline[index],outline[(index+1)%4],hub]),PackedColorArray([tint.lightened(0.25),tint,tint.lightened(0.18)]))
@@ -223,6 +328,7 @@ func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void
 		for index in range(4):
 			draw_polygon(PackedVector2Array([outline[index],inner[index],inner[(index+1)%4],outline[(index+1)%4]]),PackedColorArray([Color(0.91,1,0.97,0.08),Color(0.95,1,0.91,0.28),Color(0.62,0.88,1,0.15),Color(0.73,0.9,0.96,0.04)]))
 		var shine := 0.14+0.09*sin(phase*0.8)
+		if appearance_style == "glass": shine *= 1.6
 		draw_polygon(PackedVector2Array([Vector2(-48,-4),Vector2(-8,-93),Vector2(-19,-7),Vector2(-4,68)]),PackedColorArray([Color(0.92,1,1,shine)]))
 		var sweep := sin(phase*0.34)*90.0
 		var band := PackedVector2Array([Vector2(-100,sweep-37),Vector2(100,sweep+7),Vector2(100,sweep+14),Vector2(-100,sweep-30)])
@@ -230,7 +336,17 @@ func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void
 			draw_polygon(clipped,PackedColorArray([Color(0.9,0.98,1,0.11+energy*0.04)]))
 		var prism := PackedVector2Array([Vector2(-100,sweep-32),Vector2(100,sweep+12),Vector2(100,sweep+14),Vector2(-100,sweep-30)])
 		for clipped in Geometry2D.intersect_polygons(CORE,prism):
-			draw_polygon(clipped,PackedColorArray([Color(0.66,0.88,1,0.22)]))
+			draw_polygon(clipped,PackedColorArray([Color(_tint.lightened(0.5),0.35 if appearance_style == "glass" else 0.22)]))
+		if appearance_style == "opal":
+			# Iridescence lives inside the same facets, not an extra silhouette.
+			for layer in range(3):
+				var iridescent := Color.from_hsv(fposmod(_tint.h+layer*0.22+sin(phase*0.3)*0.12,1.0),0.48,1.0,0.22)
+				var offset := sin(phase*0.45+layer*1.7)*35.0
+				var ribbon := PackedVector2Array([Vector2(-70,offset-55+layer*25),Vector2(70,offset-15+layer*25),Vector2(70,offset+5+layer*25),Vector2(-70,offset-35+layer*25)])
+				for clipped in Geometry2D.intersect_polygons(CORE,ribbon):
+					draw_polygon(clipped,PackedColorArray([iridescent]))
+		if appearance_style == "glass":
+			draw_polyline(PackedVector2Array([Vector2(0,-107),Vector2(41,0),Vector2(0,107),Vector2(-41,0),Vector2(0,-107)]),Color(_tint.lightened(0.7),0.48),0.8,true)
 		draw_line(Vector2(-21,-4),Vector2(0,-79),Color(1,1,0.94,0.35),0.8,true)
 		draw_line(Vector2(24,0),Vector2(0,100),Color(0.71,0.91,1,0.42),0.8,true)
 	var edge := outline.duplicate()
@@ -241,8 +357,8 @@ func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void
 	if not core: return
 	# The seam is light on the same solid stone, never an opening in its body.
 	draw_texture_rect(glow,Rect2(-31,-108,62,216),false,Color(1,1,1,bright))
-	draw_polygon(PackedVector2Array([Vector2(0,-115),Vector2(5,-22),Vector2(13,4),Vector2(4,25),Vector2(0,115),Vector2(-4,25),Vector2(-12,4),Vector2(-5,-22)]),PackedColorArray([Color(1,0.91,0.64,0.5+0.4*bright)]))
-	draw_polygon(PackedVector2Array([Vector2(0,-68),Vector2(2,-20),Vector2(8,4),Vector2(2,22),Vector2(0,83),Vector2(-2,22),Vector2(-8,4),Vector2(-2,-20)]),PackedColorArray([Color(1,0.99,0.85,bright)]))
+	draw_polygon(PackedVector2Array([Vector2(0,-115),Vector2(5,-22),Vector2(13,4),Vector2(4,25),Vector2(0,115),Vector2(-4,25),Vector2(-12,4),Vector2(-5,-22)]),PackedColorArray([Color(_light,0.5+0.4*bright)]))
+	draw_polygon(PackedVector2Array([Vector2(0,-68),Vector2(2,-20),Vector2(8,4),Vector2(2,22),Vector2(0,83),Vector2(-2,22),Vector2(-8,4),Vector2(-2,-20)]),PackedColorArray([Color(_light.lightened(0.65),bright)]))
 
 func _draw_crystal_interior(bright: float) -> void:
 	# Embedded, fine mineral veins; no holes, extra shards or changes of outline.
@@ -258,8 +374,8 @@ func _draw_crystal_interior(bright: float) -> void:
 	draw_texture_rect(glow,Rect2(-12,-24,51,114),false,Color(0.70,0.85,1,0.18))
 	for index in range(veins.size()):
 		var amount := (0.20+bright*0.14)*(0.85+0.15*sin(phase*0.6+index))
-		draw_polyline(veins[index],Color(0.60,0.88,0.95,amount*0.45),2.0,true)
-		draw_polyline(veins[index],Color(0.91,1,0.94,amount),0.65,true)
+		draw_polyline(veins[index],Color(_tint.lightened(0.15),amount*0.45),2.0,true)
+		draw_polyline(veins[index],Color(_tint.lightened(0.75),amount),0.65,true)
 	# Offset rear facets provide depth through the translucent front surface.
 	draw_polygon(PackedVector2Array([Vector2(-5,-80),Vector2(31,-8),Vector2(5,76),Vector2(15,6)]),PackedColorArray([Color(0.69,0.90,1,0.06),Color(0.74,0.93,1,0.19),Color(0.53,0.81,0.89,0.05),Color(0.94,1,0.97,0.15)]))
 

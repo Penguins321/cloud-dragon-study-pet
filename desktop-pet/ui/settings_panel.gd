@@ -1,5 +1,9 @@
 extends PanelContainer
 
+const Appearance = preload("res://pet/appearance.gd")
+const AppearancePreview = preload("res://ui/appearance_preview.gd")
+
+signal appearance_requested(style: String, color: String)
 signal display_scale_requested(value: float)
 signal action_preview_requested(action: StringName)
 signal dismiss_requested
@@ -13,6 +17,12 @@ var startup_status: Label
 var icon_awareness_button: CheckButton
 var icon_awareness_status: Label
 var _sections: VBoxContainer
+var appearance_preview: SubViewportContainer
+var _appearance_title: Label
+var _style_buttons: Dictionary = {}
+var _color_buttons: Dictionary = {}
+var _selected_style := "jade"
+var _selected_color := "jade"
 
 func _ready() -> void:
 	var outer := VBoxContainer.new()
@@ -32,6 +42,7 @@ func _ready() -> void:
 	_sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sections.add_theme_constant_override("separation",14)
 	scroll.add_child(_sections)
+	_build_appearance_card()
 	var startup_card := _card()
 	var startup_row := HBoxContainer.new()
 	startup_card.add_child(startup_row)
@@ -89,7 +100,7 @@ func _ready() -> void:
 	motions.add_theme_constant_override("h_separation",6)
 	motions.add_theme_constant_override("v_separation",6)
 	motion.add_child(motions)
-	for entry in [["巡游\n弧线行进",&"swim"],["感知\n左右探查",&"look"],["舒展\n展开玉片",&"stretch"],["收息\n安静回落",&"rest"],["共鸣\n起伏应和",&"celebrate"],["引光\n聚光成笺",&"breath"],["行走\n交替踏步",&"walk"],["捧腹大笑\n欢快颤动",&"laugh"],["跳跃\n蓄力腾空",&"jump"],["连跳\n轻盈三连",&"hop"],["回旋\n玉核转动",&"spin"],["摇摆\n左右荡漾",&"sway"]]:
+	for entry in [["巡游\n弧线行进",&"swim"],["感知\n左右探查",&"look"],["舒展\n展开玉片",&"stretch"],["收息\n安静回落",&"rest"],["共鸣\n起伏应和",&"celebrate"],["引光\n聚光成笺",&"breath"],["行走\n交替踏步",&"walk"],["捧腹大笑\n欢快颤动",&"laugh"],["跳跃\n蓄力腾空",&"jump"],["连跳\n轻盈三连",&"hop"],["回旋\n玉核转动",&"spin"],["摇摆\n左右荡漾",&"sway"],["鞠躬\n轻轻致意",&"bow"],["翻滚\n玉核翻转",&"roll"],["舞蹈\n轻盈起舞",&"dance"]]:
 		var button := Button.new()
 		button.text = entry[0]
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -144,3 +155,101 @@ func set_startup_state(supported: bool, enabled: bool, detail: String) -> void:
 func set_icon_awareness_state(value: bool, detail: String) -> void:
 	icon_awareness_button.set_pressed_no_signal(value)
 	icon_awareness_status.text = detail
+
+func _build_appearance_card() -> void:
+	var card := _card()
+	card.add_theme_constant_override("separation",7)
+	var heading := HBoxContainer.new()
+	card.add_child(heading)
+	var title := _label("琢玉换彩",18)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(title)
+	heading.add_child(_label("实时预览",11,Color("7b8e7b")))
+	var stage := PanelContainer.new()
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color("f1f5eb")
+	background.set_corner_radius_all(12)
+	stage.add_theme_stylebox_override("panel",background)
+	card.add_child(stage)
+	appearance_preview = AppearancePreview.new()
+	stage.add_child(appearance_preview)
+	_appearance_title = _label("",14)
+	card.add_child(_appearance_title)
+	var styles := GridContainer.new()
+	styles.columns = 2
+	styles.add_theme_constant_override("h_separation",5)
+	styles.add_theme_constant_override("v_separation",5)
+	card.add_child(styles)
+	for entry: Dictionary in Appearance.STYLES:
+		var button := Button.new()
+		button.text = entry.name
+		button.tooltip_text = entry.detail
+		button.accessibility_name = "材质：" + entry.name
+		button.toggle_mode = true
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size",12)
+		_style_buttons[entry.id] = button
+		button.pressed.connect(func(): _choose_appearance(entry.id,_selected_color))
+		styles.add_child(button)
+		_compact_appearance_button(button)
+	var colors := GridContainer.new()
+	colors.columns = 3
+	colors.add_theme_constant_override("h_separation",6)
+	colors.add_theme_constant_override("v_separation",6)
+	card.add_child(colors)
+	for entry: Dictionary in Appearance.COLORS:
+		var button := Button.new()
+		button.text = "● " + entry.name
+		button.accessibility_name = "颜色：" + entry.name
+		button.toggle_mode = true
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size",13)
+		var swatch: Color = entry.color
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = swatch.lightened(0.72)
+		normal.border_color = swatch.darkened(0.14)
+		normal.set_border_width_all(1)
+		normal.set_corner_radius_all(7)
+		normal.set_content_margin_all(7)
+		button.add_theme_stylebox_override("normal",normal)
+		button.add_theme_color_override("font_color",Color("35564a"))
+		_color_buttons[entry.id] = button
+		button.pressed.connect(func(): _choose_appearance(_selected_style,entry.id))
+		colors.add_child(button)
+		_compact_appearance_button(button)
+	var hint := _label("轻点即换装，陪伴也有新色彩。",11,Color("71816d"))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(hint)
+	set_appearance(_selected_style,_selected_color)
+
+func _choose_appearance(style: String, color: String) -> void:
+	set_appearance(style,color)
+	appearance_requested.emit(_selected_style,_selected_color)
+
+func set_appearance(style: String, color: String) -> void:
+	_selected_style = Appearance.style_id(style)
+	_selected_color = Appearance.color_id(color)
+	if not is_instance_valid(appearance_preview): return
+	appearance_preview.set_appearance(_selected_style,_selected_color)
+	var style_name := ""
+	var color_name := ""
+	for entry: Dictionary in Appearance.STYLES:
+		var selected: bool = entry.id == _selected_style
+		_style_buttons[entry.id].set_pressed_no_signal(selected)
+		_style_buttons[entry.id].text = ("✓ " if selected else "") + entry.name
+		if selected: style_name = entry.name
+	for entry: Dictionary in Appearance.COLORS:
+		var selected: bool = entry.id == _selected_color
+		_color_buttons[entry.id].set_pressed_no_signal(selected)
+		_color_buttons[entry.id].text = ("✓ " if selected else "● ") + entry.name
+		if selected: color_name = entry.name
+	_appearance_title.text = style_name + " · " + color_name
+
+func _compact_appearance_button(button: Button) -> void:
+	for state in ["normal","hover","pressed","disabled"]:
+		var style := button.get_theme_stylebox(state).duplicate() as StyleBox
+		style.content_margin_top = 5
+		style.content_margin_bottom = 5
+		style.content_margin_left = 8
+		style.content_margin_right = 8
+		button.add_theme_stylebox_override(state,style)

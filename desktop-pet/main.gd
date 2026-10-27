@@ -4,6 +4,7 @@ const Plan = preload("res://study/study_plan.gd")
 const Store = preload("res://study/plan_store.gd")
 const ThemeResource = preload("res://ui/study_theme.tres")
 const DEFAULT_SKIN = preload("res://pet/skins/warm_jade/skin.tres")
+const Appearance = preload("res://pet/appearance.gd")
 var plan = Plan.new()
 var store = Store.new()
 var pet = preload("res://pet/pet_view.gd").new()
@@ -71,6 +72,7 @@ func _ready() -> void:
 	settings.quit_requested.connect(_quit)
 	settings.display_scale_requested.connect(_set_scale)
 	settings.action_preview_requested.connect(pet.select_action)
+	settings.appearance_requested.connect(_set_appearance)
 	settings.startup_requested.connect(_set_startup)
 	settings.icon_awareness_requested.connect(_set_icon_awareness)
 	icon_awareness.state_changed.connect(_refresh_icon_awareness)
@@ -91,6 +93,7 @@ func _ready() -> void:
 	desktop.drag_started.connect(func(): panel_window.hide(); settings_window.hide(); pet.play_action(&"dragging"))
 	desktop.drag_finished.connect(func(_position: Vector2i): pet.play_action(&"idle"); _save_preferences())
 	preferences.load(preferences_path)
+	_apply_appearance(preferences.get_value("pet","appearance_style","jade"),preferences.get_value("pet","appearance_color","jade"))
 	companionship.restore(preferences.get_value("companionship", "active_seconds", 0.0))
 	_preferences_ready = true
 	icon_awareness.set_enabled(bool(preferences.get_value("pet","icon_awareness",true)))
@@ -328,6 +331,19 @@ func _set_scale(value: float) -> void:
 	pet.set_display_scale(value)
 	_save_preferences()
 
+func _apply_appearance(style: Variant, color: Variant) -> void:
+	var selected_style := Appearance.style_id(style)
+	var selected_color := Appearance.color_id(color)
+	pet.actor.set_appearance(selected_style,selected_color)
+	settings.set_appearance(selected_style,selected_color)
+	_update_geometry()
+	preferences.set_value("pet","appearance_style",selected_style)
+	preferences.set_value("pet","appearance_color",selected_color)
+
+func _set_appearance(style: String, color: String) -> void:
+	_apply_appearance(style,color)
+	_save_preferences()
+
 func _save_preferences() -> void:
 	if not _preferences_ready:
 		return
@@ -343,6 +359,7 @@ func _save_preferences() -> void:
 func _apply_growth() -> void:
 	if is_instance_valid(pet.actor) and pet.actor.has_method("set_growth"):
 		pet.actor.set_growth(companionship.progress())
+		settings.appearance_preview.set_growth(companionship.progress())
 
 func _quit() -> void:
 	_save_preferences()

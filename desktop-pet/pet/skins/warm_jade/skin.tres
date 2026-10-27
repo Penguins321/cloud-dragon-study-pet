@@ -7,8 +7,8 @@
 script = ExtResource("1")
 id = &"warm_jade"
 scene = ExtResource("2")
-action_map = {&"idle": &"float", &"swim": &"swim", &"look": &"look", &"curious": &"look", &"stretch": &"stretch", &"rest": &"rest", &"sleepy": &"rest", &"celebrate": &"celebrate", &"dragging": &"carry", &"breath": &"breath", &"walk": &"walk", &"laugh": &"laugh", &"jump": &"jump", &"hop": &"hop", &"spin": &"spin", &"sway": &"sway"}
+action_map = {&"idle": &"float", &"swim": &"swim", &"look": &"look", &"curious": &"look", &"stretch": &"stretch", &"rest": &"rest", &"sleepy": &"rest", &"celebrate": &"celebrate", &"dragging": &"carry", &"breath": &"breath", &"walk": &"walk", &"laugh": &"laugh", &"jump": &"jump", &"hop": &"hop", &"spin": &"spin", &"sway": &"sway", &"bow": &"bow", &"roll": &"roll", &"dance": &"dance"}
 breath_anchor = Vector2(220, 16)
-visual_bounds = Rect2(-60, -210, 500, 530)
+visual_bounds = Rect2(-60, -250, 540, 590)
 hit_polygon = PackedVector2Array(220, 16, 278, 132, 220, 250, 162, 132)
 bubble_anchor = Vector2(5, -130)

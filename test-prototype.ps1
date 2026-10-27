@@ -9,4 +9,11 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/warm-jade-test.log') --script res://tests/test_warm_jade.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/big-motion-test.log') --script res://tests/test_big_motion.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/refined-motion-test.log') --script res://tests/test_motion_v13.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-settings-test.log') --script res://tests/test_appearance_settings.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$env:CLOUD_DRAGON_DATA_DIR = Join-Path $PSScriptRoot ('.tools/appearance-persistence-' + [guid]::NewGuid().ToString('N'))
+& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-persistence-test.log') --script res://tests/check_appearance_persistence.gd
 exit $LASTEXITCODE
