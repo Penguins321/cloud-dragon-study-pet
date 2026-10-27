@@ -58,6 +58,7 @@ func run() -> void:
 	second_guard.release()
 	await load("res://tests/test_pet.gd").run(self, check)
 	load("res://tests/test_study.gd").run(check)
+	load("res://tests/test_companionship.gd").run(check)
 	load("res://tests/test_study.gd").run_store(check)
 	await load("res://tests/test_ui.gd").run(self, check)
 	await load("res://tests/test_startup.gd").run(self, check)
@@ -73,6 +74,7 @@ func run() -> void:
 	load("res://tests/test_mane.gd").run(self, check)
 	load("res://tests/test_breath.gd").run(self, check)
 	load("res://tests/test_goal_light.gd").run(self, check)
+	load("res://tests/test_crystal_growth.gd").run(self, check)
 	print("%d checks, %d failures" % [checks, failures.size()])
 	if failures.is_empty():
 		print("ALL CHECKS PASSED")

@@ -13,6 +13,7 @@ var _secondary_left := Vector2.ZERO
 var _secondary_right := Vector2.ZERO
 var _lag_delta := 0.0
 var _secondary_ready := false
+var _growth := 0.0
 const CENTER := Vector2(220, 133)
 var CORE := PackedVector2Array([Vector2(0,-117),Vector2(58,0),Vector2(0,117),Vector2(-58,0)])
 var SHARD := PackedVector2Array([Vector2(-9,-40),Vector2(19,-10),Vector2(9,40),Vector2(-17,8)])
@@ -99,6 +100,17 @@ func sync_pose() -> void:
 func deform_point(point: Vector2) -> Vector2:
 	return parts[1] * (point-CENTER)
 
+func set_growth(value: float) -> void:
+	_growth = clampf(value,0.0,1.0) if is_finite(value) else 0.0
+	queue_redraw()
+
+func particle_count() -> int:
+	return 28 + floori(44.0*_growth)
+
+func _particle_visibility(index: int) -> float:
+	# New motes emerge gradually rather than popping in at a level boundary.
+	return clampf(28.0+44.0*_growth-index,0.0,1.0)
+
 func region_sample_points() -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for part in parts:
@@ -115,7 +127,13 @@ func render_regions() -> Array[PackedVector2Array]:
 	result.append(_ellipse(parts[1].origin,Vector2(105,145),32))
 	result.append(_ellipse(Vector2(220+drift,277),Vector2(51,10),24))
 	for index in [0,2]: result.append(parts[index] * (Transform2D(0,Vector2.ONE*1.10,0,Vector2.ZERO) * SHARD))
-	for index in range(26): result.append(_ellipse(_particle_position(index),Vector2.ONE*8,12))
+	for index in range(ceili(28+44*_growth)):
+		var point := _particle_position(index)
+		var radius := 9.0+3.0*_growth
+		# The main halo already covers inner motes. Only outlying glows need their
+		# own native polygon, avoiding dozens of redundant unions as it grows.
+		if ((point-parts[1].origin)/Vector2(105,145)).length()+radius/105.0 > 1.0:
+			result.append(_ellipse(point,Vector2.ONE*radius,12))
 	return result
 
 func _ellipse(center: Vector2, radius: Vector2, count: int) -> PackedVector2Array:
@@ -124,7 +142,7 @@ func _ellipse(center: Vector2, radius: Vector2, count: int) -> PackedVector2Arra
 	return points
 
 func _particle_position(index: int) -> Vector2:
-	var age := fposmod(phase*0.16+index*0.618034,1.0)
+	var age := fposmod(phase*0.16+index*0.417219,1.0)
 	var angle := index*2.39996+phase*0.12
 	return parts[1].origin+Vector2(sin(angle)*(82+index%5*9),98-age*224)
 
@@ -143,25 +161,27 @@ func _draw() -> void:
 		_draw_stone(CORE if index == 1 else SHARD,index == 1,bright)
 	draw_set_transform(Vector2.ZERO)
 	# Deterministic, looping dust: fade in/out at respawn; never pop or accumulate.
-	for index in range(26):
-		var age := fposmod(phase*0.16+index*0.618034,1.0)
+	for index in range(ceili(28+44*_growth)):
+		var age := fposmod(phase*0.16+index*0.417219,1.0)
 		var point := _particle_position(index)
-		var alpha := pow(sin(age*PI),2.0)*(0.24+bright*0.35)
-		var radius := 0.7+float(index%3)*0.45
-		draw_texture_rect(glow,Rect2(point-Vector2.ONE*7,Vector2.ONE*14),false,Color(1,1,1,alpha))
+		var alpha := minf(0.95,pow(sin(age*PI),2.0)*(0.29+bright*0.35)*(1.0+_growth*0.65))*_particle_visibility(index)
+		var radius := (0.75+float(index%3)*0.45)*(1.0+_growth*0.3)
+		var halo := 7.0+3.0*_growth
+		draw_texture_rect(glow,Rect2(point-Vector2.ONE*halo,Vector2.ONE*halo*2),false,Color(1,1,1,alpha))
 		draw_circle(point,radius,Color(1,0.94,0.72,alpha))
 		if index%6 == 0:
-			draw_line(point-Vector2(3,0),point+Vector2(3,0),Color(1,0.97,0.81,alpha),0.7,true)
-			draw_line(point-Vector2(0,4),point+Vector2(0,4),Color(1,0.97,0.81,alpha),0.7,true)
+			draw_line(point-Vector2(3+_growth,0),point+Vector2(3+_growth,0),Color(1,0.97,0.81,alpha),0.7,true)
+			draw_line(point-Vector2(0,4+_growth),point+Vector2(0,4+_growth),Color(1,0.97,0.81,alpha),0.7,true)
 
 func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void:
 	var hub := Vector2(0,5) if core else Vector2(1,0)
 	# Translucent jade, cool refraction at the edges and a warm lit interior.
-	var colors := [Color(0.71,0.92,0.88,0.82),Color(0.29,0.64,0.65,0.78),Color(0.48,0.77,0.70,0.88),Color(0.80,0.93,0.80,0.79)]
+	var colors := [Color(0.71,0.92,0.88,0.65),Color(0.29,0.64,0.65,0.60),Color(0.48,0.77,0.70,0.69),Color(0.80,0.93,0.80,0.62)]
 	for index in range(4):
 		var tint: Color = colors[index].lightened(bright*0.035)
 		draw_polygon(PackedVector2Array([outline[index],outline[(index+1)%4],hub]),PackedColorArray([tint.lightened(0.25),tint,tint.lightened(0.18)]))
 	if core:
+		_draw_crystal_interior(bright)
 		var inner := PackedVector2Array([Vector2(0,-68),Vector2(24,0),Vector2(0,73),Vector2(-24,0)])
 		for index in range(4):
 			draw_polygon(PackedVector2Array([outline[index],inner[index],inner[(index+1)%4],outline[(index+1)%4]]),PackedColorArray([Color(0.91,1,0.97,0.08),Color(0.95,1,0.91,0.28),Color(0.62,0.88,1,0.15),Color(0.73,0.9,0.96,0.04)]))
@@ -171,6 +191,9 @@ func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void
 		var band := PackedVector2Array([Vector2(-100,sweep-37),Vector2(100,sweep+7),Vector2(100,sweep+14),Vector2(-100,sweep-30)])
 		for clipped in Geometry2D.intersect_polygons(CORE,band):
 			draw_polygon(clipped,PackedColorArray([Color(0.9,0.98,1,0.11+energy*0.04)]))
+		var prism := PackedVector2Array([Vector2(-100,sweep-32),Vector2(100,sweep+12),Vector2(100,sweep+14),Vector2(-100,sweep-30)])
+		for clipped in Geometry2D.intersect_polygons(CORE,prism):
+			draw_polygon(clipped,PackedColorArray([Color(0.66,0.88,1,0.22)]))
 		draw_line(Vector2(-21,-4),Vector2(0,-79),Color(1,1,0.94,0.35),0.8,true)
 		draw_line(Vector2(24,0),Vector2(0,100),Color(0.71,0.91,1,0.42),0.8,true)
 	var edge := outline.duplicate()
@@ -183,5 +206,24 @@ func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void
 	draw_texture_rect(glow,Rect2(-31,-108,62,216),false,Color(1,1,1,bright))
 	draw_polygon(PackedVector2Array([Vector2(0,-115),Vector2(5,-22),Vector2(13,4),Vector2(4,25),Vector2(0,115),Vector2(-4,25),Vector2(-12,4),Vector2(-5,-22)]),PackedColorArray([Color(1,0.91,0.64,0.5+0.4*bright)]))
 	draw_polygon(PackedVector2Array([Vector2(0,-68),Vector2(2,-20),Vector2(8,4),Vector2(2,22),Vector2(0,83),Vector2(-2,22),Vector2(-8,4),Vector2(-2,-20)]),PackedColorArray([Color(1,0.99,0.85,bright)]))
+
+func _draw_crystal_interior(bright: float) -> void:
+	# Embedded, fine mineral veins; no holes, extra shards or changes of outline.
+	var veins := [
+		PackedVector2Array([Vector2(-16,-72),Vector2(-26,-43),Vector2(-20,-10),Vector2(-33,12),Vector2(-21,42),Vector2(-12,67)]),
+		PackedVector2Array([Vector2(18,-58),Vector2(29,-21),Vector2(20,11),Vector2(31,27),Vector2(17,66)]),
+		PackedVector2Array([Vector2(-26,-43),Vector2(-37,-21),Vector2(-38,-6)]),
+		PackedVector2Array([Vector2(-33,12),Vector2(-41,21),Vector2(-29,50)]),
+		PackedVector2Array([Vector2(29,-21),Vector2(38,-5),Vector2(33,15)]),
+		PackedVector2Array([Vector2(20,11),Vector2(13,29),Vector2(17,48)])
+	]
+	draw_texture_rect(glow,Rect2(-37,-83,56,156),false,Color(0.59,0.95,1,0.26))
+	draw_texture_rect(glow,Rect2(-12,-24,51,114),false,Color(0.70,0.85,1,0.18))
+	for index in range(veins.size()):
+		var amount := (0.20+bright*0.14)*(0.85+0.15*sin(phase*0.6+index))
+		draw_polyline(veins[index],Color(0.60,0.88,0.95,amount*0.45),2.0,true)
+		draw_polyline(veins[index],Color(0.91,1,0.94,amount),0.65,true)
+	# Offset rear facets provide depth through the translucent front surface.
+	draw_polygon(PackedVector2Array([Vector2(-5,-80),Vector2(31,-8),Vector2(5,76),Vector2(15,6)]),PackedColorArray([Color(0.69,0.90,1,0.06),Color(0.74,0.93,1,0.19),Color(0.53,0.81,0.89,0.05),Color(0.94,1,0.97,0.15)]))
 
 

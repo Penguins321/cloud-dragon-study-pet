@@ -15,6 +15,11 @@ var panel: PanelContainer
 var settings_window: Window
 var settings: PanelContainer
 var preferences := ConfigFile.new()
+var companionship = preload("res://pet/companionship.gd").new()
+var _preferences_ready := false
+var _preferences_error_reported := false
+var _active_since_save := 0.0
+var _last_growth_tick := 0
 var storage_blocked := false
 var startup_message := ""
 var preferences_path := "user://preferences.cfg"
@@ -77,6 +82,10 @@ func _ready() -> void:
 	desktop.drag_started.connect(func(): panel_window.hide(); settings_window.hide(); pet.play_action(&"dragging"))
 	desktop.drag_finished.connect(func(_position: Vector2i): pet.play_action(&"idle"); _save_preferences())
 	preferences.load(preferences_path)
+	companionship.restore(preferences.get_value("companionship", "active_seconds", 0.0))
+	_preferences_ready = true
+	_last_growth_tick = Time.get_ticks_msec()
+	_apply_growth()
 	pet.set_display_scale(float(preferences.get_value("pet", "scale", 1.0)))
 	var saved: Variant = preferences.get_value("pet", "position", Vector2i(-1, -1))
 	if not saved is Vector2i or saved == Vector2i(-1, -1):
@@ -97,9 +106,18 @@ func _ready() -> void:
 	if args.has("--preview-breath"):
 		pet.select_action(&"breath")
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if pet.skin == null:
 		return
+	if _preferences_ready:
+		var now := Time.get_ticks_msec()
+		# Godot may cap frame delta after suspend; check the monotonic gap as well.
+		var continuous := now - _last_growth_tick <= 2000
+		_last_growth_tick = now
+		_active_since_save += companionship.advance(delta, continuous and pet.is_active() and get_window().visible)
+		_apply_growth()
+		if _active_since_save >= 60.0:
+			_save_preferences()
 	var previous_visible: bool = breath_effect.visible
 	var previous_stage: int = breath_effect.stage()
 	_sync_breath()
@@ -248,10 +266,19 @@ func _set_scale(value: float) -> void:
 	_save_preferences()
 
 func _save_preferences() -> void:
+	if not _preferences_ready:
+		return
 	preferences.set_value("pet", "scale", pet.scale.x)
 	preferences.set_value("pet", "position", get_window().position)
-	if preferences.save(preferences_path) != OK:
-		panel.show_error("位置或大小设置未能保存。")
+	preferences.set_value("companionship", "active_seconds", companionship.active_seconds)
+	_active_since_save = 0.0
+	if preferences.save(preferences_path) != OK and not _preferences_error_reported:
+		_preferences_error_reported = true
+		panel.show_error("设置与陪伴时长未能保存，请检查数据目录权限。")
+
+func _apply_growth() -> void:
+	if is_instance_valid(pet.actor) and pet.actor.has_method("set_growth"):
+		pet.actor.set_growth(companionship.progress())
 
 func _quit() -> void:
 	_save_preferences()
