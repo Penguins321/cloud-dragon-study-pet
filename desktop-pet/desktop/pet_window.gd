@@ -19,6 +19,8 @@ var last_click_position := Vector2(-1000, -1000)
 var _press_local := Vector2.ZERO
 var _tray: StatusIndicator
 var _menu: PopupMenu
+var _right_pressed := false
+var _context_pending := false
 
 func _ready() -> void:
 	_window = get_window()
@@ -33,9 +35,10 @@ func _ready() -> void:
 	# swap wait falling to half refresh. main.gd retains the 60 FPS engine cap.
 	if DisplayServer.get_name() != "headless":
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED, _window.get_window_id())
-	_window.close_requested.connect(hide_pet)
+	_window.close_requested.connect(func(): quit_requested.emit())
 	set_process(false)
 	_menu = PopupMenu.new()
+	_menu.name = "PetContextMenu"
 	_menu.add_item("显示宠物", 0)
 	_menu.add_item("今日目标（引光）", 4)
 	_menu.add_item("学习计划…", 1)
@@ -55,11 +58,14 @@ func _ready() -> void:
 		image.gradient.colors = PackedColorArray([Color("357fe5"), Color("e6f3ff")])
 		_tray.icon = image
 		add_child(_tray)
+		if NativeMenu.has_feature(NativeMenu.FEATURE_POPUP_MENU):
+			# Let Windows own the tray popup and dismiss its overflow panel correctly.
+			_tray.menu = _tray.get_path_to(_menu)
 		_tray.pressed.connect(func(button: int, _position: Vector2i):
 			if button == MOUSE_BUTTON_LEFT:
 				show_pet()
-			elif button == MOUSE_BUTTON_RIGHT:
-				_show_context_menu()
+			elif button == MOUSE_BUTTON_RIGHT and _tray.menu.is_empty():
+				_queue_context_menu()
 		)
 	var timer := Timer.new()
 	timer.wait_time = 2.0
@@ -84,7 +90,10 @@ func usable_areas() -> Array[Rect2i]:
 	return areas
 
 func pointer_busy() -> bool:
-	return _pressed or _dragging
+	return _pressed or _dragging or context_menu_active()
+
+func context_menu_active() -> bool:
+	return _right_pressed or _context_pending or (is_instance_valid(_menu) and _menu.visible)
 
 func restore_visible_position(saved: Vector2i) -> void:
 	var constrained := Geometry.restore_position(saved, _window.size, usable_areas())
@@ -116,8 +125,22 @@ func _input(event: InputEvent) -> void:
 				set_process(true)
 			else:
 				_finish_pointer(event.position)
-		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			_show_context_menu()
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			get_viewport().set_input_as_handled()
+			if event.pressed:
+				_right_pressed = true
+			elif _right_pressed:
+				_right_pressed = false
+				_queue_context_menu()
+
+func _queue_context_menu() -> void:
+	if _context_pending: return
+	_context_pending = true
+	_finish_context_menu.call_deferred()
+
+func _finish_context_menu() -> void:
+	_context_pending = false
+	_show_context_menu()
 
 func _show_context_menu() -> void:
 	_menu.position = DisplayServer.mouse_get_position()

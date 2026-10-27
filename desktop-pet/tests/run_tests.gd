@@ -76,6 +76,7 @@ func run() -> void:
 	load("res://tests/test_goal_light.gd").run(self, check)
 	load("res://tests/test_crystal_growth.gd").run(self, check)
 	await load("res://tests/test_icon_awareness.gd").run(self, check)
+	await load("res://tests/test_context_menu.gd").run(self, check)
 	print("%d checks, %d failures" % [checks, failures.size()])
 	if failures.is_empty():
 		print("ALL CHECKS PASSED")

@@ -120,6 +120,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if pet.skin == null:
 		return
+	pet.set_interaction_paused(desktop.context_menu_active())
 	_observe_icons(delta)
 	if _preferences_ready:
 		var now := Time.get_ticks_msec()

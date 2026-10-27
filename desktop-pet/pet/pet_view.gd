@@ -8,6 +8,7 @@ var actor: Node2D
 var player: AnimationPlayer
 var _generation := 0
 var _enabled := true
+var _interaction_paused := false
 var _render_polygons: Array[PackedVector2Array] = []
 var _region_samples := PackedVector2Array()
 var _interaction_index := -1
@@ -45,7 +46,7 @@ func apply_skin(candidate: Resource) -> Error:
 	return OK
 
 func _process(delta: float) -> void:
-	if not _enabled or not is_instance_valid(player):
+	if not _enabled or _interaction_paused or not is_instance_valid(player):
 		return
 	player.advance(delta)
 	if actor.has_method("advance_pose"):
@@ -130,6 +131,9 @@ func set_active(enabled: bool) -> void:
 
 func is_active() -> bool:
 	return _enabled
+
+func set_interaction_paused(value: bool) -> void:
+	_interaction_paused = value
 
 func set_display_scale(value: float) -> void:
 	scale = Vector2.ONE * clampf(value, 0.5, 2.0)
