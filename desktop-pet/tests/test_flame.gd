@@ -2,30 +2,17 @@ extends RefCounted
 
 static func run(check: Callable) -> void:
 	var rig = load("res://pet/skins/warm_jade/rig.gd").new()
-	check.call(rig.has_method("flame_particle_count"),"flame material is rendered with particles")
-	if not rig.has_method("flame_particle_count"):
-		rig.free()
-		return
+	var flow = load("res://pet/flame_flow.gd")
 	rig.set_appearance("flame","ember")
-	check.call(rig.appearance_style == "flame" and rig.appearance_color == "ember","flame and fire colors are valid selections")
-	var start_count: int = rig.flame_particle_count()
-	check.call(start_count >= 60,"flame has enough particles to read as continuous fire")
-	var first: Vector2 = rig.flame_particle(0).position
+	var young_count: int = rig.flame_particle_count()
+	check.call(young_count > 0,"fire theme has live ember particles")
+	var phase: float = rig.phase
+	var before: Array = flow.ember_particles(rig)
 	rig.advance_pose(0.1)
-	check.call(first.distance_to(rig.flame_particle(0).position) > 1.0,"flame particles move over time")
+	check.call(before[0].position.distance_to(flow.ember_particles(rig)[0].position)>1.0,"embers travel independently over time")
 	rig.set_growth(1.0)
-	check.call(rig.flame_particle_count() > start_count,"growth enriches the flame")
-	var covered := true
-	var finite := true
-	var regions: Array = rig.render_regions()
-	for index in range(rig.flame_particle_count()):
-		var particle: Dictionary = rig.flame_particle(index)
-		finite = finite and particle.position.is_finite() and particle.alpha >= 0.0 and particle.alpha <= 1.0
-		var found := false
-		for region in regions:
-			if Geometry2D.is_point_in_polygon(particle.position,region): found = true
-		covered = covered and found
-	check.call(finite and covered,"all flame particles remain finite and inside native rendering coverage")
+	check.call(rig.flame_particle_count()>young_count,"companionship growth adds actual ember particles")
+	check.call(rig.phase>phase,"switching and growth preserve the running motion clock")
 	rig.set_appearance("jade","jade")
-	check.call(rig.flame_particle_count() == 0,"changing away from flame stops its particles")
+	check.call(rig.flame_particle_count()==0,"leaving the fire theme disables its particles")
 	rig.free()

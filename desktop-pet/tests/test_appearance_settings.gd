@@ -22,8 +22,8 @@ func _run() -> void:
 	panel.appearance_requested.connect(func(style: String, color: String): emissions.append([style,color]))
 	await process_frame
 	await process_frame
-	_check(panel._style_buttons.size() == 4,"All four materials must be available")
-	_check(panel._color_buttons.size() == 9,"All nine colors must be available")
+	_check(panel._style_buttons.size() == 6,"Crystal, flame, lightning and snow materials must be available")
+	_check(panel._color_buttons.size() == 7 and not panel._color_buttons.has("gold") and not panel._color_buttons.has("bluefire"),"Retired gold and blue-fire entries must be removed")
 	panel.set_appearance("glass","rose")
 	_check(emissions.is_empty(),"Restoring appearance must not emit a user request")
 	_check(panel._appearance_title.text == "澄透水晶 · 蔷薇","Selected appearance names must be shown")
@@ -37,7 +37,11 @@ func _run() -> void:
 	_check(emissions.size() == 3 and emissions[2] == ["flame","ice"],"Flame material must preserve the chosen color")
 	panel._color_buttons.ember.pressed.emit()
 	_check(emissions.size() == 4 and emissions[3] == ["flame","ember"],"Flame palette must apply one matching selection")
-	_check(panel._appearance_title.text == "流焰灵核 · 赤焰","Flame selection names must be shown")
+	_check(panel._appearance_title.text == "火之精灵 · 赤焰","Flame selection names must be shown")
+	panel._style_buttons.lightning.pressed.emit()
+	_check(emissions[-1] == ["lightning","ember"] and panel.appearance_preview.actor.appearance_style == "lightning","Lightning selects its own renderer")
+	panel._style_buttons.snow.pressed.emit()
+	_check(emissions[-1] == ["snow","ember"] and panel.appearance_preview.actor.appearance_style == "snow","Snow selects its own renderer")
 	await process_frame
 	await process_frame
 	_check(panel._sections.size.x <= panel._sections.get_parent().size.x,"Cards must not overflow the horizontal scroll area")

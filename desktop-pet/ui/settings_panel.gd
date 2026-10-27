@@ -227,8 +227,9 @@ func _choose_appearance(style: String, color: String) -> void:
 	appearance_requested.emit(_selected_style,_selected_color)
 
 func set_appearance(style: String, color: String) -> void:
-	_selected_style = Appearance.style_id(style)
-	_selected_color = Appearance.color_id(color)
+	var appearance_pair := Appearance.selection(style,color)
+	_selected_style = appearance_pair[0]
+	_selected_color = appearance_pair[1]
 	if not is_instance_valid(appearance_preview): return
 	appearance_preview.set_appearance(_selected_style,_selected_color)
 	var style_name := ""

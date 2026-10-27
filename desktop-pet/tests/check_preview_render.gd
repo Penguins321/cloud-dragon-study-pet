@@ -20,9 +20,11 @@ func run() -> void:
 	actor.scale = preview.actor.scale
 	actor.position = preview.actor.position+Vector2(400,0)
 	var worst := 0.0
-	for style in ["jade","glass","opal","flame"]:
+	for style in ["jade","glass","opal","flame","lightning","snow"]:
 		preview.set_appearance(style,"violet")
 		actor.set_appearance(style,"violet")
+		actor.scale = preview.actor.scale
+		actor.position = preview.actor.position+Vector2(400,0)
 		await process_frame
 		await process_frame
 		await RenderingServer.frame_post_draw

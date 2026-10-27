@@ -61,7 +61,7 @@ func _ready() -> void:
 	panel = preload("res://ui/plan_panel.tscn").instantiate()
 	panel_window = _make_window("学习计划", panel, Vector2i(410, 610))
 	settings = preload("res://ui/settings_panel.tscn").instantiate()
-	settings_window = _make_window("设置", settings, Vector2i(480, 660))
+	settings_window = _make_window("设置", settings, Vector2i(480, 720))
 	panel.complete_requested.connect(_complete)
 	panel.next_requested.connect(_next)
 	panel.content_replace_requested.connect(_replace)
@@ -332,8 +332,9 @@ func _set_scale(value: float) -> void:
 	_save_preferences()
 
 func _apply_appearance(style: Variant, color: Variant) -> void:
-	var selected_style := Appearance.style_id(style)
-	var selected_color := Appearance.color_id(color)
+	var selected := Appearance.selection(style,color)
+	var selected_style: String = selected[0]
+	var selected_color: String = selected[1]
 	pet.actor.set_appearance(selected_style,selected_color)
 	settings.set_appearance(selected_style,selected_color)
 	_update_geometry()

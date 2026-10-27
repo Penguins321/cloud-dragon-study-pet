@@ -66,7 +66,7 @@ func run() -> void:
 			if animation.track_get_key_time(track,key) < animation.length*0.2:
 				anticipation = maxf(anticipation,animation.track_get_key_value(track,key))
 		check(anticipation > 9.0, action + " gathers downwards before the main gesture")
-	for appearance in ["jade","flame"]:
+	for appearance in ["jade","flame","lightning","snow"]:
 		view.actor.set_appearance(appearance,"ember" if appearance == "flame" else "jade")
 		view.actor.set_growth(1.0)
 		for action in view.CLICK_ACTIONS:

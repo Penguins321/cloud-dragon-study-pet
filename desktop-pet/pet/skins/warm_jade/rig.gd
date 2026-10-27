@@ -17,6 +17,10 @@ var _lag_delta := 0.0
 var _secondary_ready := false
 var _growth := 0.0
 const Appearance = preload("res://pet/appearance.gd")
+const Elements = preload("res://pet/element_effects.gd")
+const FlameFlow = preload("res://pet/flame_flow.gd")
+const ElementLayer = preload("res://pet/effects/element_layer.gd")
+var _effect_layers: Array[Node2D] = []
 var appearance_style := "jade"
 var appearance_color := "jade"
 var _tint := Color("79bca9")
@@ -151,6 +155,13 @@ func _init() -> void:
 	glow.gradient.offsets = PackedFloat32Array([0.0,0.24,0.6,1.0])
 	glow.gradient.colors = PackedColorArray([Color(1,0.89,0.58,0.7),Color(1,0.88,0.58,0.28),Color(1,0.88,0.6,0.06),Color(1,0.9,0.7,0)])
 	sync_pose()
+	for front in [false,true]:
+		var layer := ElementLayer.new()
+		layer.foreground = front
+		layer.show_behind_parent = not front
+		add_child(layer)
+		_effect_layers.append(layer)
+		layer.refresh()
 
 func advance_pose(delta: float) -> void:
 	phase += maxf(0.0,delta)
@@ -158,6 +169,7 @@ func advance_pose(delta: float) -> void:
 	_lag_delta = maxf(0.0,delta)
 	sync_pose()
 	queue_redraw()
+	_refresh_effects()
 
 func sync_pose() -> void:
 	var bob := sin(phase*TAU/4.8)*8.0
@@ -183,22 +195,33 @@ func deform_point(point: Vector2) -> Vector2:
 func set_growth(value: float) -> void:
 	_growth = clampf(value,0.0,1.0) if is_finite(value) else 0.0
 	queue_redraw()
+	_refresh_effects()
+
+func _refresh_effects() -> void:
+	for layer in _effect_layers: layer.refresh()
 
 func set_appearance(style: String, color: String) -> void:
-	appearance_style = Appearance.style_id(style)
-	appearance_color = Appearance.color_id(color)
+	var selected := Appearance.selection(style,color)
+	appearance_style = selected[0]
+	appearance_color = selected[1]
 	_tint = Appearance.tint(appearance_color)
 	_light = Color(1,0.91,0.64) if appearance_color in ["jade","amber"] else _tint.lightened(0.65)
 	if appearance_style == "flame": _light = _tint.lightened(0.78)
+	if appearance_style == "lightning": _light = Color("dceaff")
+	if appearance_style == "snow": _light = Color("effbff")
 	glow.gradient.colors = PackedColorArray([Color(_light,0.7),Color(_light,0.28),Color(_light,0.06),Color(_light,0.0)])
 	queue_redraw()
+	_refresh_effects()
 
 func facet_colors() -> Array[Color]:
 	var alpha := 0.64
 	if appearance_style == "glass": alpha = 0.39
 	if appearance_style == "opal": alpha = 0.72
-	if appearance_style == "flame": alpha = 0.45
+	if appearance_style == "flame": alpha = 0.76
 	var base := _tint
+	if appearance_style == "flame": base = Color("e8bf8f").lerp(_tint,0.48)
+	if appearance_style == "lightning": base = Color("8a80ae").lerp(_tint,0.35)
+	if appearance_style == "snow": base = Color("bedddc").lerp(_tint,0.15)
 	if appearance_style == "opal":
 		var rainbow := Color.from_hsv(fposmod(_tint.h+0.12*sin(phase*0.38),1.0),0.40,0.94)
 		base = base.lerp(rainbow,0.55)
@@ -211,21 +234,8 @@ func particle_count() -> int:
 	return 28 + floori(44.0*_growth)
 
 func flame_particle_count() -> int:
-	return 96+floori(40.0*_growth) if appearance_style == "flame" else 0
+	return FlameFlow.ember_particles(self).size() if appearance_style == "flame" else 0
 
-func flame_particle(index: int) -> Dictionary:
-	# Analytic particles avoid one scene node per spark and loop without a burst.
-	# The fade is zero at both lifetime boundaries, so respawning is invisible.
-	var satellite := index%5 == 0 or index%5 == 1
-	var origin: Vector2 = parts[0 if index%5 == 0 else 2].origin if satellite else parts[1].origin
-	var size_scale := 0.43 if satellite else 1.0
-	var age := fposmod(phase*(0.62+float(index%7)*0.017)+index*0.618034,1.0)
-	var seed := sin(index*17.31)
-	var column := seed*(1.0-age)*40.0
-	var flutter := sin(age*9.0+phase*2.2+index)*12.0*age
-	var point := origin+Vector2(column+flutter,85.0-age*250.0)*size_scale
-	var alpha := pow(sin(PI*age),1.3)*(0.48+0.18*maxf(0.0,energy))
-	return {"position":point,"alpha":clampf(alpha,0.0,1.0),"age":age,"size":Vector2(4.0+sin(PI*age)*4.5,10.0+sin(PI*age)*13.0)*size_scale}
 
 func _particle_visibility(index: int) -> float:
 	# New motes emerge gradually rather than popping in at a level boundary.
@@ -250,12 +260,14 @@ func render_regions() -> Array[PackedVector2Array]:
 	result.append(_ellipse(Vector2(220+drift,277),Vector2(51,10),24))
 	for index in [0,2]: result.append(parts[index] * (Transform2D(0,Vector2.ONE*1.10,0,Vector2.ZERO) * SHARD))
 	if appearance_style == "flame":
-		# Bound each emitter as a whole instead of unioning 136 moving spark shapes.
-		result.append(_ellipse(parts[1].origin+Vector2(0,-35),Vector2(80,170),32))
-		for index in [0,2]: result.append(_ellipse(parts[index].origin+Vector2(0,-15),Vector2(36,76),24))
+		result.append_array(FlameFlow.regions(self))
+	if appearance_style in ["lightning","snow"]:
+		result.append_array(Elements.regions(self,appearance_style))
 	for index in range(ceili(28+44*_growth)):
 		var point := _particle_position(index)
 		var radius := 9.0+3.0*_growth
+		if appearance_style == "flame" and ((point-parts[1].origin-Vector2(10,-47))/Vector2(168,234)).length()+radius/168.0 < 0.98:
+			continue
 		# The main halo already covers inner motes. Only outlying glows need their
 		# own native polygon, avoiding dozens of redundant unions as it grows.
 		if ((point-parts[1].origin)/Vector2(105,145)).length()+radius/105.0 > 1.0:
@@ -281,13 +293,11 @@ func _draw() -> void:
 		draw_set_transform(Vector2(220+drift,277),0,Vector2(1,0.16))
 		draw_circle(Vector2.ZERO,24.0+ring*2.0,Color(0.18,0.24,0.19,0.009))
 	draw_set_transform(Vector2.ZERO)
-	if appearance_style == "flame": _draw_flames(false)
 	for index in [0,2,1]:
 		var part := parts[index]
 		draw_set_transform(part.origin,part.get_rotation())
 		_draw_stone(CORE if index == 1 else SHARD,index == 1,bright)
 	draw_set_transform(Vector2.ZERO)
-	if appearance_style == "flame": _draw_flames(true)
 	# Deterministic, looping dust: fade in/out at respawn; never pop or accumulate.
 	for index in range(ceili(28+44*_growth)):
 		var age := fposmod(phase*0.16+index*0.417219,1.0)
@@ -301,19 +311,7 @@ func _draw() -> void:
 			draw_line(point-Vector2(3+_growth,0),point+Vector2(3+_growth,0),Color(1,0.97,0.81,alpha),0.7,true)
 			draw_line(point-Vector2(0,4+_growth),point+Vector2(0,4+_growth),Color(1,0.97,0.81,alpha),0.7,true)
 
-func _draw_flames(foreground: bool) -> void:
-	for index in range(flame_particle_count()):
-		if (index%3 == 0) != foreground: continue
-		var particle := flame_particle(index)
-		var point: Vector2 = particle.position
-		var extent: Vector2 = particle.size
-		var alpha: float = particle.alpha
-		var hue := _tint.lerp(_light,0.12+0.43*(1.0-particle.age))
-		draw_texture_rect(glow,Rect2(point-extent*1.4,extent*2.8),false,Color(_tint,alpha*0.36))
-		# A tapered luminous tongue, not a soft smoke disk.
-		var tongue := PackedVector2Array([point+Vector2(0,-extent.y),point+Vector2(extent.x*0.7,-extent.y*0.1),point+Vector2(extent.x,extent.y*0.35),point+Vector2(0,extent.y*0.65),point+Vector2(-extent.x,extent.y*0.35),point+Vector2(-extent.x*0.6,-extent.y*0.1)])
-		draw_colored_polygon(tongue,Color(hue,alpha))
-		draw_line(point+Vector2(0,extent.y*0.3),point-Vector2(0,extent.y*0.4),Color(_light,alpha*0.85),maxf(0.7,extent.x*0.3),true)
+
 
 func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void:
 	var hub := Vector2(0,5) if core else Vector2(1,0)
@@ -354,6 +352,16 @@ func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void
 	draw_polyline(edge,Color(0.96,0.98,0.85,0.65),0.8,true)
 	draw_line(outline[0],outline[3],Color(0.95,1,1,0.85),1.3,true)
 	draw_line(outline[0],hub,Color(1,1,0.89,0.65),0.7,true)
+	if appearance_style in ["flame","lightning","snow"]:
+		var gold := Color("f0dfb4").lerp(_light,0.3)
+		draw_line(outline[0],hub,Color(gold,0.72),0.85,true)
+		if core:
+			# Painted secondary planes and fine mineral-gold facets, still rigid.
+			var plane := PackedVector2Array([Vector2(0,-104),Vector2(-37,-9),Vector2(-13,9),Vector2(0,103),Vector2(14,-4)])
+			draw_polygon(plane,PackedColorArray([Color(gold,0.05),Color(_tint,0.10),Color(gold,0.18),Color(gold,0.03),Color(_light,0.12)]))
+			for side in [-1,1]:
+				var line := PackedVector2Array([Vector2(side*10,-65),Vector2(side*31,-12),Vector2(side*17,21),Vector2(side*6,69)])
+				draw_polyline(line,Color(gold,0.30),0.65,true)
 	if not core: return
 	# The seam is light on the same solid stone, never an opening in its body.
 	draw_texture_rect(glow,Rect2(-31,-108,62,216),false,Color(1,1,1,bright))
