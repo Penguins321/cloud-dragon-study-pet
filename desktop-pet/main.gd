@@ -5,10 +5,12 @@ const Store = preload("res://study/plan_store.gd")
 const ThemeResource = preload("res://ui/study_theme.tres")
 const DEFAULT_SKIN = preload("res://pet/skins/warm_jade/skin.tres")
 const Appearance = preload("res://pet/appearance.gd")
+const SkinCatalog = preload("res://pet/skin_catalog.gd")
 const PreferencesStore = preload("res://study/preferences_store.gd")
 const PlanTransfer = preload("res://study/plan_transfer.gd")
 var focus_session = preload("res://study/focus_session.gd").new()
 var scheduler = preload("res://pet/ambient_scheduler.gd").new()
+var social_interaction = preload("res://pet/social_interaction.gd").new()
 var data_dialog = preload("res://ui/plan_data_dialog.gd").new()
 var companion_mode := "natural"
 var reduced_motion := false
@@ -49,6 +51,8 @@ var _icon_hover := 0.0
 var _icon_focus := Vector2.INF
 var font_level := 0
 var renderer_mode := "3d"
+var selected_skin := "warm_jade"
+var _last_animal_click := -1000
 
 func _ready() -> void:
 	var data_directory := OS.get_environment("CLOUD_DRAGON_DATA_DIR")
@@ -96,6 +100,7 @@ func _ready() -> void:
 	settings.display_scale_requested.connect(_set_scale)
 	settings.action_preview_requested.connect(pet.select_action)
 	settings.appearance_requested.connect(_set_appearance)
+	settings.skin_requested.connect(_set_skin)
 	settings.startup_requested.connect(_set_startup)
 	settings.icon_awareness_requested.connect(_set_icon_awareness)
 	settings.font_level_requested.connect(_set_font_level)
@@ -110,13 +115,11 @@ func _ready() -> void:
 	data_dialog.import_path_selected.connect(_import_file)
 	data_dialog.export_path_selected.connect(func(path: String, kind: String): _export_plan(kind, path))
 	data_dialog.import_confirmed.connect(_confirm_import)
-	pet.actor.renderer_failed.connect(func(message: String):
-		_set_renderer_mode("2d")
-		settings.set_renderer_mode("2d",message)
-	)
+	_bind_renderer_signal()
 	icon_awareness.state_changed.connect(_refresh_icon_awareness)
 	_refresh_startup()
 	desktop.pet_clicked.connect(_handle_pet_click)
+	desktop.affection_requested.connect(func(): _manual_social(&"nuzzle"))
 	desktop.edit_requested.connect(_show_plan)
 	desktop.goal_requested.connect(func(): pet.select_action(&"breath"))
 	desktop.settings_requested.connect(_show_settings)
@@ -137,6 +140,7 @@ func _ready() -> void:
 	var preferences_result: Dictionary = PreferencesStore.load_config(preferences_path)
 	preferences = preferences_result.config
 	_preferences_blocked = preferences_result.error not in [OK, ERR_FILE_NOT_FOUND]
+	_apply_skin_id(preferences.get_value("pet", "skin_id", "warm_jade"))
 	_apply_renderer_mode(str(preferences.get_value("pet","renderer_mode","3d")))
 	_apply_font_level(preferences.get_value("ui","font_level",0))
 	_apply_appearance(preferences.get_value("pet","appearance_style","jade"),preferences.get_value("pet","appearance_color","jade"))
@@ -204,7 +208,9 @@ func _process(delta: float) -> void:
 		_update_geometry()
 	var allowed: bool = _ambient_enabled() and pet.is_active() and get_window().visible and get_window().mode != Window.MODE_MINIMIZED and not desktop.pointer_busy() and not panel_window.visible and not settings_window.visible and pet.current_action == &"idle"
 	var next_action: StringName = scheduler.step(_ambient_elapsed, allowed)
-	if next_action != &"": pet.play_action(next_action)
+	if next_action != &"":
+		if not pet.skin.action_map.has(next_action): next_action = &"curious"
+		pet.play_action(next_action)
 
 func _sync_breath() -> void:
 	var active: bool = pet.is_active() and pet.current_action == &"breath"
@@ -327,7 +333,16 @@ func _toggle_plan() -> void:
 func _handle_pet_click() -> void:
 	if breath_effect.contains_point(desktop.last_click_position):
 		_toggle_plan()
+	elif pet.skin.id == &"warm_jade" and desktop.last_click_double:
+		_manual_social(&"greet")
 	else:
+		if selected_skin != "warm_jade":
+			var now := Time.get_ticks_msec()
+			if now - _last_animal_click < 350:
+				_last_animal_click = -1000
+				pet.select_action(&"bow")
+				return
+			_last_animal_click = now
 		pet.cycle_action()
 
 func _show_plan() -> void:
@@ -365,9 +380,16 @@ func _refresh_icon_awareness() -> void:
 
 func _observe_icons(delta: float) -> void:
 	if not pet.actor.has_method("set_desktop_attention"): return
+	if selected_skin != "warm_jade":
+		_observe_animal_pointer()
+		return
 	var now := Time.get_ticks_msec()
-	var blocked: bool = not _ambient_enabled() or not pet.is_active() or desktop.pointer_busy() or panel_window.visible or settings_window.visible or not icon_awareness.fresh(now) or icon_awareness.left_button_down
-	var attention := Vector2.ZERO
+	var origin: Vector2 = Vector2(get_window().position)+pet.position+pet.map_skin_point(Vector2(220,133))
+	var relative_pointer: Vector2 = (Vector2(DisplayServer.mouse_get_position())-origin)/maxf(0.5,pet.scale.x)
+	var response: Dictionary = social_interaction.step(_ambient_elapsed, relative_pointer, _social_allowed())
+	var blocked: bool = not _social_allowed() or not icon_awareness.fresh(now) or icon_awareness.left_button_down
+	var attention: Vector2 = response.attention
+	if response.action != &"": pet.play_action(response.action)
 	if not blocked and pet.current_action == &"idle":
 		var target: Dictionary = icon_awareness.attention_target(Vector2(DisplayServer.mouse_get_position()),now)
 		if target.has("point"):
@@ -375,7 +397,6 @@ func _observe_icons(delta: float) -> void:
 			_icon_hover = _icon_hover+minf(delta,0.1) if point == _icon_focus else 0.0
 			_icon_focus = point
 			if _icon_hover >= 0.35:
-				var origin: Vector2 = Vector2(get_window().position)+pet.position+pet.map_skin_point(Vector2(220,133))
 				attention = (point-origin).normalized()
 		else:
 			_icon_hover = 0.0
@@ -404,6 +425,24 @@ func _observe_icons(delta: float) -> void:
 			_avoid_target = Vector2.INF
 			_avoid_elapsed = -3.0
 
+func _social_allowed() -> bool:
+	return pet.skin != null and pet.skin.id == &"warm_jade" and _ambient_enabled() and pet.is_active() and get_window().visible and get_window().mode != Window.MODE_MINIMIZED and pet.current_action == &"idle" and not desktop.pointer_busy() and not panel_window.visible and not settings_window.visible
+
+func _manual_social(action: StringName) -> void:
+	if pet.skin != null and pet.skin.action_map.has(action):
+		pet.select_action(action)
+		social_interaction.reset()
+
+func _observe_animal_pointer() -> void:
+	var attention := Vector2.ZERO
+	var allowed: bool = _ambient_enabled() and pet.is_active() and pet.current_action == &"idle" and not desktop.pointer_busy() and not panel_window.visible and not settings_window.visible
+	if allowed:
+		var local: Vector2 = (Vector2(DisplayServer.mouse_get_position() - get_window().position) - pet.position) / pet.scale
+		var offset: Vector2 = local - pet.skin.visual_bounds.get_center()
+		if offset.length() < 300.0:
+			attention = offset.limit_length(150.0) / 150.0
+	pet.actor.set_desktop_attention(attention)
+
 func _set_scale(value: float) -> void:
 	pet.set_display_scale(value)
 	settings.set_display_scale_selection(pet.scale.x)
@@ -411,9 +450,46 @@ func _set_scale(value: float) -> void:
 
 func _apply_renderer_mode(mode: String) -> void:
 	renderer_mode = "3d" if mode == "3d" else "2d"
-	pet.actor.set_render_mode(renderer_mode)
-	settings.appearance_preview.actor.set_render_mode(renderer_mode)
+	if pet.actor.has_method("set_render_mode"): pet.actor.set_render_mode(renderer_mode)
+	if settings.appearance_preview.actor.has_method("set_render_mode"): settings.appearance_preview.actor.set_render_mode(renderer_mode)
 	settings.set_renderer_mode(renderer_mode)
+
+func _bind_renderer_signal() -> void:
+	if pet.actor.has_signal("renderer_failed"):
+		var actor_id: int = pet.actor.get_instance_id()
+		pet.actor.connect("renderer_failed", func(message: String):
+			_recover_skin_renderer.call_deferred(message, actor_id)
+		)
+
+func _recover_skin_renderer(message: String, source_id: int) -> void:
+	if not is_instance_valid(pet.actor) or pet.actor.get_instance_id() != source_id: return
+	if selected_skin != "warm_jade": _set_skin("warm_jade")
+	else: _set_renderer_mode("2d")
+	settings.set_renderer_mode(renderer_mode, message)
+
+func _apply_skin_id(value: Variant) -> void:
+	var next_id := SkinCatalog.skin_id(value)
+	if pet.skin == null or String(pet.skin.id) != next_id:
+		var error: Error = pet.apply_skin(SkinCatalog.load_skin(next_id))
+		if error != OK:
+			next_id = "warm_jade"
+			pet.apply_skin(DEFAULT_SKIN)
+		_bind_renderer_signal()
+	selected_skin = next_id
+	_last_animal_click = -1000
+	_avoid_target = Vector2.INF
+	_icon_hover = 0.0
+	settings.set_skin_selection(next_id)
+	preferences.set_value("pet", "skin_id", next_id)
+	_apply_appearance(preferences.get_value("pet", "appearance_style", "jade"), preferences.get_value("pet", "appearance_color", "jade"))
+	_apply_renderer_mode(renderer_mode)
+	_apply_companion_options()
+	_apply_growth()
+	_update_geometry()
+
+func _set_skin(id: String) -> void:
+	_apply_skin_id(id)
+	_save_preferences()
 
 func _set_renderer_mode(mode: String) -> void:
 	_apply_renderer_mode(mode)
@@ -447,7 +523,7 @@ func _apply_appearance(style: Variant, color: Variant) -> void:
 	var selected := Appearance.selection(style,color)
 	var selected_style: String = selected[0]
 	var selected_color: String = selected[1]
-	pet.actor.set_appearance(selected_style,selected_color)
+	if pet.actor.has_method("set_appearance"): pet.actor.set_appearance(selected_style,selected_color)
 	settings.set_appearance(selected_style,selected_color)
 	_update_geometry()
 	preferences.set_value("pet","appearance_style",selected_style)
@@ -465,6 +541,7 @@ func _save_preferences() -> void:
 	preferences.set_value("pet", "scale", pet.scale.x)
 	preferences.set_value("ui", "font_level", font_level)
 	preferences.set_value("pet","renderer_mode",renderer_mode)
+	preferences.set_value("pet", "skin_id", selected_skin)
 	preferences.set_value("pet", "position", get_window().position)
 	preferences.set_value("companionship", "active_seconds", companionship.active_seconds)
 	preferences.set_value("pet","icon_awareness",icon_awareness.enabled)
@@ -496,8 +573,8 @@ func _apply_companion_options() -> void:
 	Engine.max_fps = (30 if performance_mode == "eco" else 60) if pet.is_active() else 10
 	icon_awareness.set_active(pet.is_active() and _ambient_enabled())
 	settings.set_companion_options(companion_mode, reduced_motion, performance_mode, topmost_enabled)
-	pet.actor.set_focus_mode(focus_session.state == "running")
-	settings.appearance_preview.actor.set_focus_mode(focus_session.state == "running")
+	if pet.actor.has_method("set_focus_mode"): pet.actor.set_focus_mode(focus_session.state == "running")
+	if settings.appearance_preview.actor.has_method("set_focus_mode"): settings.appearance_preview.actor.set_focus_mode(focus_session.state == "running")
 	scheduler.reset()
 
 func _set_companion_mode(mode: String) -> void:

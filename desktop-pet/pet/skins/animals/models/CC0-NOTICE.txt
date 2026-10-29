@@ -1,0 +1,8 @@
+Gobkit free animal models: Corgi.glb, Duck.glb, Jellyfish.glb
+Author/source: Gobkit, https://gobkit.com/api/free
+License stated by source: CC0 1.0 Universal (public domain).
+License deed: https://creativecommons.org/publicdomain/zero/1.0/
+Legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+The source explicitly permits commercial/personal use and local redistribution; attribution is not required.
+Credit is retained here for provenance. These files are provided as-is.
+The original source license statement is preserved in source-manifest.json.

@@ -1,0 +1,260 @@
+[
+  {
+    "file": "Corgi.glb",
+    "source_url": "https://gobkit.com/freebies/animal/Corgi.glb",
+    "bytes": 106928,
+    "sha256": "7137f257c72d7171ae5416dabf1df75b3b4ebfd5cab226354b14dc0ae720cf68",
+    "glb_version": 2,
+    "length_valid": true,
+    "meshes": 1,
+    "skins": 1,
+    "joint_counts": [
+      16
+    ],
+    "mesh_local_aabb": {
+      "min": [
+        -173.205078125,
+        -241.18496704101562,
+        -4.751849174499512
+      ],
+      "max": [
+        173.205078125,
+        200.17051696777344,
+        399.6210021972656
+      ],
+      "size": [
+        346.41015625,
+        441.35548400878906,
+        404.37285137176514
+      ]
+    },
+    "mesh_node_rotation_xyzw": [
+      -0.7071068286895752,
+      0,
+      0,
+      0.7071067094802856
+    ],
+    "rest_aabb_after_mesh_node_rotation": {
+      "min": [
+        -173.20507219644398,
+        -4.751882758075853,
+        -200.17057748728934
+      ],
+      "max": [
+        173.20507219644398,
+        399.621029179563,
+        241.18495958670604
+      ],
+      "size": [
+        346.41014439288796,
+        404.37291193763883,
+        441.3555370739954
+      ]
+    },
+    "animations": [
+      {
+        "name": "idle",
+        "start_seconds": 0,
+        "end_seconds": 1.2083333730697632,
+        "duration_seconds": 1.2083333730697632,
+        "channels": 42
+      },
+      {
+        "name": "attack",
+        "start_seconds": 0,
+        "end_seconds": 1.2083332538604736,
+        "duration_seconds": 1.2083332538604736,
+        "channels": 48
+      },
+      {
+        "name": "dead",
+        "start_seconds": 0,
+        "end_seconds": 1.2083332538604736,
+        "duration_seconds": 1.2083332538604736,
+        "channels": 48
+      },
+      {
+        "name": "walk",
+        "start_seconds": 0,
+        "end_seconds": 1.2083334922790527,
+        "duration_seconds": 1.2083334922790527,
+        "channels": 48
+      }
+    ],
+    "extensions_used": [],
+    "external_buffer_uris": [],
+    "external_image_uris": []
+  },
+  {
+    "file": "Duck.glb",
+    "source_url": "https://gobkit.com/freebies/animal/Duck.glb",
+    "bytes": 103516,
+    "sha256": "aedcb23b37972eff284c63ba755663ec2f5e0d4ccafb9e04bb64c95a98853e60",
+    "glb_version": 2,
+    "length_valid": true,
+    "meshes": 1,
+    "skins": 1,
+    "joint_counts": [
+      16
+    ],
+    "mesh_local_aabb": {
+      "min": [
+        -181.9955291748047,
+        -250.13636779785156,
+        -1.0549068450927734
+      ],
+      "max": [
+        181.99554443359375,
+        218.5413818359375,
+        435.51983642578125
+      ],
+      "size": [
+        363.99107360839844,
+        468.67774963378906,
+        436.574743270874
+      ]
+    },
+    "mesh_node_rotation_xyzw": [
+      -0.7071068286895752,
+      0,
+      0,
+      0.7071067094802856
+    ],
+    "rest_aabb_after_mesh_node_rotation": {
+      "min": [
+        -181.9955229453644,
+        -1.054943652306267,
+        -218.54144777873614
+      ],
+      "max": [
+        181.99553820415295,
+        435.51986368840693,
+        250.13635941389066
+      ],
+      "size": [
+        363.99106114951735,
+        436.5748073407132,
+        468.6778071926268
+      ]
+    },
+    "animations": [
+      {
+        "name": "idle",
+        "start_seconds": 0,
+        "end_seconds": 1.2083333730697632,
+        "duration_seconds": 1.2083333730697632,
+        "channels": 42
+      },
+      {
+        "name": "attack",
+        "start_seconds": 0,
+        "end_seconds": 1.2083332538604736,
+        "duration_seconds": 1.2083332538604736,
+        "channels": 48
+      },
+      {
+        "name": "dead",
+        "start_seconds": 0,
+        "end_seconds": 1.2083332538604736,
+        "duration_seconds": 1.2083332538604736,
+        "channels": 48
+      },
+      {
+        "name": "walk",
+        "start_seconds": 0,
+        "end_seconds": 1.2083334922790527,
+        "duration_seconds": 1.2083334922790527,
+        "channels": 48
+      }
+    ],
+    "extensions_used": [],
+    "external_buffer_uris": [],
+    "external_image_uris": []
+  },
+  {
+    "file": "Jellyfish.glb",
+    "source_url": "https://gobkit.com/freebies/animal/Jellyfish.glb",
+    "bytes": 100384,
+    "sha256": "8a0334a15fadc181653df57648ece79fd48e1d297874a5f806a3b989bce4d380",
+    "glb_version": 2,
+    "length_valid": true,
+    "meshes": 1,
+    "skins": 1,
+    "joint_counts": [
+      16
+    ],
+    "mesh_local_aabb": {
+      "min": [
+        -206.9315185546875,
+        -162.2112579345703,
+        -4.751849174499512
+      ],
+      "max": [
+        206.9315185546875,
+        173.20509338378906,
+        369.9919128417969
+      ],
+      "size": [
+        413.863037109375,
+        335.4163513183594,
+        374.7437620162964
+      ]
+    },
+    "mesh_node_rotation_xyzw": [
+      -0.7071068286895752,
+      0,
+      0,
+      0.7071067094802856
+    ],
+    "rest_aabb_after_mesh_node_rotation": {
+      "min": [
+        -206.93151147172483,
+        -4.7518782120454395,
+        -173.2051498312014
+      ],
+      "max": [
+        206.93151147172483,
+        369.9919275242834,
+        162.2112531834162
+      ],
+      "size": [
+        413.86302294344966,
+        374.74380573632885,
+        335.4164030146176
+      ]
+    },
+    "animations": [
+      {
+        "name": "idle",
+        "start_seconds": 0,
+        "end_seconds": 1.2083333730697632,
+        "duration_seconds": 1.2083333730697632,
+        "channels": 42
+      },
+      {
+        "name": "attack",
+        "start_seconds": 0,
+        "end_seconds": 1.2083332538604736,
+        "duration_seconds": 1.2083332538604736,
+        "channels": 48
+      },
+      {
+        "name": "dead",
+        "start_seconds": 0,
+        "end_seconds": 1.2083332538604736,
+        "duration_seconds": 1.2083332538604736,
+        "channels": 48
+      },
+      {
+        "name": "walk",
+        "start_seconds": 0,
+        "end_seconds": 1.2083334922790527,
+        "duration_seconds": 1.2083334922790527,
+        "channels": 48
+      }
+    ],
+    "extensions_used": [],
+    "external_buffer_uris": [],
+    "external_image_uris": []
+  }
+]

@@ -96,7 +96,7 @@ def main():
             info.filename = "WarmJade.app" + info.filename[len(bundle):]
             dest.writestr(info, data)
         dest.write(ROOT / "desktop-pet/packaging/朋友安装说明-macOS.txt", "安装说明.txt")
-        for name in ("GODOT-LICENSE.txt", "GODOT-THIRD-PARTY.json"):
+        for name in ("GODOT-LICENSE.txt", "GODOT-THIRD-PARTY.json", "GOBKIT-ASSETS.txt"):
             dest.write(ROOT / "desktop-pet/build" / name, name)
     validate(final)
     # Verify actual exported scripts, not the source checkout or strings in a ZIP.

@@ -2,9 +2,11 @@ extends PanelContainer
 
 const Appearance = preload("res://pet/appearance.gd")
 const AppearancePreview = preload("res://ui/appearance_preview.gd")
+const SkinCatalog = preload("res://pet/skin_catalog.gd")
 const FONT_SETTINGS_REVISION := "0.14.2-font-sync"
 
 signal appearance_requested(style: String, color: String)
+signal skin_requested(id: String)
 signal display_scale_requested(value: float)
 signal action_preview_requested(action: StringName)
 signal dismiss_requested
@@ -44,6 +46,14 @@ var _color_buttons: Dictionary = {}
 var _scale_buttons: Dictionary = {}
 var _selected_style := "jade"
 var _selected_color := "jade"
+var _selected_skin := "warm_jade"
+var _skin_buttons: Dictionary = {}
+var _skin_info: Label
+var _jade_controls: VBoxContainer
+var _motions: GridContainer
+var _motion_buttons: Dictionary = {}
+var _renderer_mode := "3d"
+var _font_level := 0
 
 func _ready() -> void:
 	theme = preload("res://ui/study_theme.tres")
@@ -56,7 +66,7 @@ func _ready() -> void:
 	header.add_child(_label("◇  温玉灵核",13,Color("627861")))
 	header.add_child(_label("设置",26,Color("284a40")))
 	header.add_child(_label("让陪伴，恰到好处。",13,Color("627362")))
-	header.add_child(_label("版本 0.16 · 按自己的节奏，相伴学习",11,Color("627362")))
+	header.add_child(_label("版本 0.17 · 多一种伙伴，相伴学习",11,Color("627362")))
 	category_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	category_tabs.custom_minimum_size.y = 180
 	outer.add_child(category_tabs)
@@ -144,19 +154,12 @@ func _ready() -> void:
 	_build_companion_options()
 	var motion := _card()
 	motion.add_child(_label("动作预览",16))
-	var motions := GridContainer.new()
-	motions.columns = 2
-	motions.add_theme_constant_override("h_separation",6)
-	motions.add_theme_constant_override("v_separation",6)
-	motion.add_child(motions)
-	for entry in [["巡游\n弧线行进",&"swim"],["感知\n左右探查",&"look"],["舒展\n展开玉片",&"stretch"],["收息\n安静回落",&"rest"],["共鸣\n起伏应和",&"celebrate"],["引光\n聚光成笺",&"breath"],["行走\n交替踏步",&"walk"],["捧腹大笑\n欢快颤动",&"laugh"],["跳跃\n蓄力腾空",&"jump"],["连跳\n轻盈三连",&"hop"],["回旋\n玉核转动",&"spin"],["摇摆\n左右荡漾",&"sway"],["鞠躬\n轻轻致意",&"bow"],["翻滚\n玉核翻转",&"roll"],["舞蹈\n轻盈起舞",&"dance"],["环绕\n玉片绕行",&"orbit"],["螺旋\n盘旋升降",&"helix"],["交错环绕\n前后交汇",&"cross_orbit"],["巡光\n立体转身",&"refract_turn"]]:
-		var button := Button.new()
-		button.text = entry[0]
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.add_theme_font_size_override("font_size",13)
-		button.pressed.connect(func(): action_preview_requested.emit(entry[1]))
-		motions.add_child(button)
-	var note := _label("轻点切换动作，按住拖动；点光笺查看计划。",12,Color("627362"))
+	_motions = GridContainer.new()
+	_motions.columns = 2
+	_motions.add_theme_constant_override("h_separation",6)
+	_motions.add_theme_constant_override("v_separation",6)
+	motion.add_child(_motions)
+	var note := _label("轻点伙伴切换动作，按住拖动；右键查看计划。",12,Color("627362"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_sections.add_child(note)
 	_sections = _category_sections["数据与帮助"]
@@ -172,6 +175,7 @@ func _ready() -> void:
 		var event: Signal = entry[1]
 		button.pressed.connect(func(): event.emit())
 		footer.add_child(button)
+	set_skin_selection(_selected_skin)
 
 func _label(text: String, size: int, color := Color("35564a")) -> Label:
 	var label := Label.new()
@@ -183,6 +187,7 @@ func _label(text: String, size: int, color := Color("35564a")) -> Label:
 
 func set_font_level(level: int) -> void:
 	var selected := preload("res://ui/font_scale.gd").valid_level(level)
+	_font_level = selected
 	for i in font_buttons.size(): font_buttons[i].set_pressed_no_signal(i == selected)
 	preload("res://ui/font_scale.gd").apply(self,selected)
 	category_tabs.add_theme_font_size_override("font_size",roundi(14*preload("res://ui/font_scale.gd").FACTORS[selected]))
@@ -192,8 +197,12 @@ func set_font_level(level: int) -> void:
 	tab_bar.add_theme_font_size_override("font_size",roundi(int(tab_bar.get_meta("normal_font_size"))*preload("res://ui/font_scale.gd").FACTORS[selected]))
 
 func set_renderer_mode(mode: String, message := "") -> void:
-	renderer_button.set_pressed_no_signal(mode == "3d")
-	renderer_status.text = message if not message.is_empty() else ("晶体使用立体 3D，保留原有动作。" if mode == "3d" else "使用原版 2D 晶体。")
+	_renderer_mode = "3d" if mode == "3d" else "2d"
+	var jade := _selected_skin == "warm_jade"
+	renderer_button.disabled = not jade
+	renderer_button.set_pressed_no_signal(not jade or mode == "3d")
+	renderer_button.text = "使用立体 3D 晶体" if jade else "立体 3D 动物伙伴"
+	renderer_status.text = (message if not message.is_empty() else ("晶体使用立体 3D，保留原有动作。" if mode == "3d" else "使用原版 2D 晶体。")) if jade else "动物伙伴始终使用 3D；温玉灵核仍可切换 2D / 3D。"
 
 func set_display_scale_selection(scale: float) -> void:
 	for value in _scale_buttons:
@@ -232,10 +241,30 @@ func _build_appearance_card() -> void:
 	card.add_theme_constant_override("separation",7)
 	var heading := HBoxContainer.new()
 	card.add_child(heading)
-	var title := _label("琢玉换彩",18)
+	var title := _label("陪伴形象",18)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
-	heading.add_child(_label("实时预览",11,Color("7b8e7b")))
+	var preview_label := _label("实时预览",11,Color("7b8e7b"))
+	preview_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	heading.add_child(preview_label)
+	var companions := GridContainer.new()
+	companions.columns = 2
+	companions.add_theme_constant_override("h_separation",6)
+	companions.add_theme_constant_override("v_separation",6)
+	card.add_child(companions)
+	for entry: Dictionary in SkinCatalog.entries():
+		var button := Button.new()
+		var id := str(entry.id)
+		button.text = str(entry.name)
+		button.tooltip_text = str(entry.detail)
+		button.accessibility_name = "伙伴：" + str(entry.name)
+		button.toggle_mode = true
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(func(): set_skin_selection(id); skin_requested.emit(id))
+		_skin_buttons[id] = button
+		companions.add_child(button)
+	_skin_info = _label("",12,Color("627362"))
+	card.add_child(_skin_info)
 	var stage := PanelContainer.new()
 	var background := StyleBoxFlat.new()
 	background.bg_color = Color("f1f5eb")
@@ -244,10 +273,13 @@ func _build_appearance_card() -> void:
 	card.add_child(stage)
 	appearance_preview = AppearancePreview.new()
 	stage.add_child(appearance_preview)
+	_jade_controls = VBoxContainer.new()
+	_jade_controls.add_theme_constant_override("separation",7)
+	card.add_child(_jade_controls)
 	_appearance_title = _label("",14)
-	card.add_child(_appearance_title)
+	_jade_controls.add_child(_appearance_title)
 	var presets := VBoxContainer.new()
-	card.add_child(presets)
+	_jade_controls.add_child(presets)
 	for entry in [["青玉 · 温润日常","jade","jade"],["月白 · 澄澈静心","glass","moon"],["紫晶 · 幻彩灵感","opal","violet"]]:
 		var button := Button.new()
 		button.text = entry[0]
@@ -261,7 +293,7 @@ func _build_appearance_card() -> void:
 	styles.columns = 2
 	styles.add_theme_constant_override("h_separation",5)
 	styles.add_theme_constant_override("v_separation",5)
-	card.add_child(styles)
+	_jade_controls.add_child(styles)
 	for entry: Dictionary in Appearance.STYLES:
 		var button := Button.new()
 		button.text = entry.name
@@ -278,7 +310,7 @@ func _build_appearance_card() -> void:
 	colors.columns = 3
 	colors.add_theme_constant_override("h_separation",6)
 	colors.add_theme_constant_override("v_separation",6)
-	card.add_child(colors)
+	_jade_controls.add_child(colors)
 	for entry: Dictionary in Appearance.COLORS:
 		var button := Button.new()
 		button.text = "● " + entry.name
@@ -301,8 +333,34 @@ func _build_appearance_card() -> void:
 		_compact_appearance_button(button)
 	var hint := _label("轻点即换装，陪伴也有新色彩。",11,Color("71816d"))
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	card.add_child(hint)
+	_jade_controls.add_child(hint)
 	set_appearance(_selected_style,_selected_color)
+
+func set_skin_selection(id: String) -> void:
+	_selected_skin = SkinCatalog.skin_id(id)
+	if not is_instance_valid(appearance_preview): return
+	appearance_preview.set_skin(_selected_skin)
+	for entry: Dictionary in SkinCatalog.entries():
+		var selected: bool = str(entry.id) == _selected_skin
+		_skin_buttons[str(entry.id)].set_pressed_no_signal(selected)
+		if selected: _skin_info.text = str(entry.name) + " · " + str(entry.detail)
+	_jade_controls.visible = _selected_skin == "warm_jade"
+	set_renderer_mode(_renderer_mode)
+	if is_instance_valid(_motions):
+		for child in _motions.get_children():
+			_motions.remove_child(child)
+			child.queue_free()
+		_motion_buttons.clear()
+		for entry in SkinCatalog.actions(_selected_skin):
+			var button := Button.new()
+			var action := StringName(entry[1])
+			button.text = str(entry[0])
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			button.add_theme_font_size_override("font_size",13)
+			button.pressed.connect(func(): action_preview_requested.emit(action))
+			_motion_buttons[action] = button
+			_motions.add_child(button)
+		preload("res://ui/font_scale.gd").apply(_motions,_font_level)
 
 func _choose_appearance(style: String, color: String) -> void:
 	set_appearance(style,color)
@@ -381,7 +439,7 @@ func _build_companion_options() -> void:
 	reduced_motion.accessibility_name = "减少动态"
 	reduced_motion.toggled.connect(func(value): reduced_motion_requested.emit(value))
 	card.add_child(reduced_motion)
-	var note := _label("专注时玉核会安静下来；你仍可主动预览动作。",12,Color("627362"))
+	var note := _label("专注时伙伴会安静下来；你仍可主动预览动作。",12,Color("627362"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(note)
 	companionship_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -410,6 +468,6 @@ func _build_data_help() -> void:
 	card.add_child(scopes)
 	var help := _card()
 	help.add_child(_label("从这里开始",16))
-	var instructions := _label("点玉核切换动作，按住拖动。点光笺查看近期目标与学习计划。\n\n任务由你手动标记完成，再手动开始下一项；专注计时不会改变清单进度。追加任务或修订当前内容可保留进度。\n\n专注支持暂停、继续和结束本次；系统休眠后恢复为暂停。\n\n收起或按 Escape 关闭面板。隐藏宠物后，可从托盘菜单再次显示；退出会结束程序。",13)
+	var instructions := _label("轻点伙伴切换动作，按住拖动。温玉灵核：双击招手，中键亲昵；靠近时轻轻注视，左右轻扫会亲昵回应。动物伙伴：双击鞠躬，空闲时跟随附近指针。点光笺或右键菜单查看当前任务与学习计划。\n\n任务由你手动标记完成，再手动开始下一项；专注计时不会改变清单进度。追加任务或修订当前内容可保留进度。\n\n专注支持暂停、继续和结束本次；系统休眠后恢复为暂停。\n\n收起或按 Escape 关闭面板。隐藏宠物后，可从托盘菜单再次显示；退出会结束程序。",13)
 	instructions.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_child(instructions)

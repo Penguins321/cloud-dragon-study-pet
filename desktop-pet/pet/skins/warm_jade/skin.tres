@@ -7,7 +7,7 @@
 script = ExtResource("1")
 id = &"warm_jade"
 scene = ExtResource("2")
-action_map = {&"idle": &"float", &"swim": &"swim", &"look": &"look", &"curious": &"look", &"stretch": &"stretch", &"rest": &"rest", &"sleepy": &"rest", &"celebrate": &"celebrate", &"dragging": &"carry", &"breath": &"breath", &"walk": &"walk", &"laugh": &"laugh", &"jump": &"jump", &"hop": &"hop", &"spin": &"spin", &"sway": &"sway", &"bow": &"bow", &"roll": &"roll", &"dance": &"dance", &"orbit": &"orbit", &"helix": &"helix", &"cross_orbit": &"cross_orbit", &"refract_turn": &"refract_turn"}
+action_map = {&"idle": &"float", &"swim": &"swim", &"look": &"look", &"curious": &"look", &"stretch": &"stretch", &"rest": &"rest", &"sleepy": &"rest", &"celebrate": &"celebrate", &"dragging": &"carry", &"breath": &"breath", &"walk": &"walk", &"laugh": &"laugh", &"jump": &"jump", &"hop": &"hop", &"spin": &"spin", &"sway": &"sway", &"bow": &"bow", &"roll": &"roll", &"dance": &"dance", &"greet": &"greet", &"nuzzle": &"nuzzle", &"startle": &"startle", &"doze": &"doze", &"orbit": &"orbit", &"helix": &"helix", &"cross_orbit": &"cross_orbit", &"refract_turn": &"refract_turn"}
 breath_anchor = Vector2(220, 16)
 visual_bounds = Rect2(-100, -360, 650, 750)
 hit_polygon = PackedVector2Array(220, 16, 278, 132, 220, 250, 162, 132)

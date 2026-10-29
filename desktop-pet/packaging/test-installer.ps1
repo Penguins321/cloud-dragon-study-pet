@@ -1,4 +1,4 @@
-param([string]$Version = '0.16')
+param([string]$Version = '0.17')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path (Split-Path $PSScriptRoot)
 $setup = Join-Path $root "desktop-pet/build/dist/WarmJade-v$Version-Setup.exe"
@@ -8,7 +8,7 @@ $shortcuts = @((Join-Path ([Environment]::GetFolderPath('Desktop')) '温玉灵�
 $beforeLinks = @($shortcuts | ForEach-Object { Test-Path -LiteralPath $_ }) -join ','
 $p = Start-Process -FilePath $setup -ArgumentList @('/S','/TESTMODE',"/D=$testDir") -WindowStyle Hidden -PassThru -Wait
 if ($p.ExitCode -ne 0) { throw "Install failed: $($p.ExitCode)" }
-foreach ($name in @('WarmJade.exe','Uninstall.exe','GODOT-LICENSE.txt','GODOT-THIRD-PARTY.json','.warmjade-test')) {
+foreach ($name in @('WarmJade.exe','Uninstall.exe','GODOT-LICENSE.txt','GODOT-THIRD-PARTY.json','GOBKIT-ASSETS.txt','.warmjade-test')) {
     if (!(Test-Path -LiteralPath (Join-Path $testDir $name))) { throw "Missing installed $name" }
 }
 if ((Get-FileHash (Join-Path $testDir 'WarmJade.exe')).Hash -ne (Get-FileHash (Join-Path $root "desktop-pet/build/WarmJadePrototype-v$Version.exe")).Hash) { throw 'Installed payload mismatch' }

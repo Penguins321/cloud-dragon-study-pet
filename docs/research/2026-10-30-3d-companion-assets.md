@@ -1,0 +1,14 @@
+# 3D companion asset selection — 2026-10-30
+
+The selected implementation retains the jade core and adds genuinely different 3D animal silhouettes: Gobkit Corgi, Duck and Jellyfish. These are offline bundled assets, with no runtime request to the author service. Source bytes, CC0 notice, original manifest, SHA256 hashes and measured GLB metadata are under `desktop-pet/pet/skins/animals/models/`.
+
+| Source | Verified license / content | Decision |
+| --- | --- | --- |
+| [Gobkit Free Animal Pack](https://gobkit.itch.io/gobkit-free-animal-pack), [official manifest](https://gobkit.com/api/free) | Source explicitly states CC0 and permits local redistribution. Direct self-contained GLB; downloaded Corgi, Duck, Jellyfish each contain 1 mesh, 1 skin/16 joints and separate idle/attack/dead/walk clips of about 1.20833 s. | Chosen for low integration cost and distinct silhouettes. Native idle/walk provide skeletal motion; application adds interactions. |
+| [Khronos Fox](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/Fox/README.md) | PixelMannen mesh CC0; tomkranis rig/animation and AsoboStudio/scurest glTF conversion CC BY 4.0. Survey/Walk/Run. | Good future fox option; preserve all credits and modification notice. Do not describe the animated asset as wholly CC0. |
+| [Quaternius Ultimate Animals](https://quaternius.com/packs/ultimateanimatedanimals.html), [Cute Monsters](https://quaternius.com/packs/cutemonsters.html) | Pack pages show CC0, but [current QAL](https://quaternius.com/license.html) dated 2026-08-28 restricts standalone asset redistribution while permitting completed products. Animals advertise 12 models with 12+ animations; monsters advertise 21 animated models. | Deferred because public pack/global terms conflict; preserve and inspect the actual archive license before repository redistribution. |
+| [Zeenaz animated pixel cat](https://zeenaz.itch.io/free-pixel-animation-cat-6-loops) | Explicit CC0; 16x16 sprite sheet with sitting, standing, walking, sleeping, scared and frightened loops. | Lightweight 2D alternative; deferred because this iteration selects 3D animals. |
+
+License references: [CC0 deed](https://creativecommons.org/publicdomain/zero/1.0/), [CC0 legal code](https://creativecommons.org/publicdomain/zero/1.0/legalcode), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+Actual binary inspection overrides source marketing where they differ: the chosen GLBs have standard textured PBR materials, large mesh-local Z-up coordinates and a mesh-node -90 degree X conversion rotation. Normalize using transformed rest AABB corners, not mesh-local height alone. No model's four native clips should be advertised as 19 authored companion actions. Do not claim handmade or no-AI provenance. Binary structure and provenance are verified here; application appearance, clipping, interaction and export verification are recorded by the integration task.

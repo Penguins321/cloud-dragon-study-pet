@@ -2,7 +2,7 @@ config_version=5
 
 [application]
 config/name="温玉灵核学习搭子"
-config/version="0.16"
+config/version="0.17"
 run/main_scene="res://main.tscn"
 run/main_scene.prototype_validation="res://tests/export_runner.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")

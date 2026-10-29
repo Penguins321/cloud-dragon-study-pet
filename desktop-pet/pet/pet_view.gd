@@ -13,8 +13,8 @@ var _render_polygons: Array[PackedVector2Array] = []
 var _region_samples := PackedVector2Array()
 var _interaction_index := -1
 var reduced_motion := false
-const CLICK_ACTIONS: Array[StringName] = [&"swim", &"look", &"stretch", &"rest", &"celebrate", &"breath", &"walk", &"laugh", &"jump", &"hop", &"spin", &"sway", &"bow", &"roll", &"dance", &"orbit", &"helix", &"cross_orbit", &"refract_turn"]
-const PRIORITY := {&"idle": 0, &"swim": 1, &"rest": 1, &"sleepy": 1, &"curious": 2, &"look": 2, &"stretch": 2, &"breath": 2, &"celebrate": 3, &"walk": 2, &"laugh": 3, &"jump": 3, &"hop": 3, &"spin": 3, &"sway": 2, &"bow": 2, &"roll": 3, &"dance": 3, &"dragging": 4, &"orbit":3, &"helix":3, &"cross_orbit":3, &"refract_turn":3}
+const CLICK_ACTIONS: Array[StringName] = [&"swim", &"look", &"stretch", &"rest", &"celebrate", &"breath", &"walk", &"laugh", &"jump", &"hop", &"spin", &"sway", &"bow", &"roll", &"dance", &"orbit", &"helix", &"cross_orbit", &"refract_turn", &"greet", &"nuzzle", &"startle", &"doze"]
+const PRIORITY := {&"idle": 0, &"swim": 1, &"rest": 1, &"sleepy": 1, &"curious": 2, &"look": 2, &"stretch": 2, &"breath": 2, &"celebrate": 3, &"walk": 2, &"laugh": 3, &"jump": 3, &"hop": 3, &"spin": 3, &"sway": 2, &"bow": 2, &"roll": 3, &"dance": 3, &"dragging": 4, &"orbit":3, &"helix":3, &"cross_orbit":3, &"refract_turn":3, &"greet":2, &"nuzzle":2, &"startle":2, &"doze":1}
 
 func apply_skin(candidate: Resource) -> Error:
 	if candidate == null or candidate.get_script() != preload("res://pet/pet_skin.gd"):

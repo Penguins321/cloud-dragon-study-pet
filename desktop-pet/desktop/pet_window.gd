@@ -8,6 +8,7 @@ signal edit_requested
 signal goal_requested
 signal settings_requested
 signal focus_requested
+signal affection_requested
 signal quit_requested
 
 const Geometry = preload("res://desktop/window_geometry.gd")
@@ -17,6 +18,8 @@ var _dragging := false
 var _press_mouse := Vector2i.ZERO
 var _press_window := Vector2i.ZERO
 var last_click_position := Vector2(-1000, -1000)
+var last_click_double := false
+var _press_double := false
 var _press_local := Vector2.ZERO
 var _tray: StatusIndicator
 var _menu: PopupMenu
@@ -156,6 +159,7 @@ func _input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				_pressed = true
+				_press_double = event.double_click
 				_dragging = false
 				_press_mouse = DisplayServer.mouse_get_position()
 				_press_window = _window.position
@@ -170,6 +174,8 @@ func _input(event: InputEvent) -> void:
 			elif _right_pressed:
 				_right_pressed = false
 				_queue_context_menu()
+		elif event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed:
+			affection_requested.emit()
 
 func _queue_context_menu() -> void:
 	if _context_pending: return
@@ -212,6 +218,7 @@ func _finish_pointer(release_position: Variant = null) -> void:
 		drag_finished.emit(_window.position)
 	else:
 		last_click_position = _press_local
+		last_click_double = _press_double
 		pet_clicked.emit()
 	_dragging = false
 
