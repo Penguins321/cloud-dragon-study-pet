@@ -2,6 +2,7 @@ extends PanelContainer
 
 const Appearance = preload("res://pet/appearance.gd")
 const AppearancePreview = preload("res://ui/appearance_preview.gd")
+const FONT_SETTINGS_REVISION := "0.14.2-font-sync"
 
 signal appearance_requested(style: String, color: String)
 signal display_scale_requested(value: float)
@@ -11,6 +12,9 @@ signal hide_pet_requested
 signal quit_requested
 signal startup_requested(enabled: bool)
 signal icon_awareness_requested(enabled: bool)
+signal font_level_requested(level: int)
+
+var font_buttons: Array[Button] = []
 
 var startup_button: CheckButton
 var startup_status: Label
@@ -42,6 +46,24 @@ func _ready() -> void:
 	_sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sections.add_theme_constant_override("separation",14)
 	scroll.add_child(_sections)
+	var font_card := _card()
+	font_card.add_child(_label("全局界面字号",16))
+	var font_choices := GridContainer.new()
+	font_choices.columns = 2
+	font_choices.add_theme_constant_override("h_separation",6)
+	font_choices.add_theme_constant_override("v_separation",6)
+	font_card.add_child(font_choices)
+	var font_group := ButtonGroup.new()
+	for level in range(4):
+		var button := Button.new()
+		button.text = preload("res://ui/font_scale.gd").NAMES[level]
+		button.toggle_mode = true
+		button.button_group = font_group
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(func(): font_level_requested.emit(level))
+		font_choices.add_child(button)
+		font_buttons.append(button)
+	font_buttons[0].set_pressed_no_signal(true)
 	_build_appearance_card()
 	var startup_card := _card()
 	var startup_row := HBoxContainer.new()
@@ -128,6 +150,11 @@ func _label(text: String, size: int, color := Color("35564a")) -> Label:
 	label.add_theme_font_size_override("font_size",size)
 	label.add_theme_color_override("font_color",color)
 	return label
+
+func set_font_level(level: int) -> void:
+	var selected := preload("res://ui/font_scale.gd").valid_level(level)
+	for i in font_buttons.size(): font_buttons[i].set_pressed_no_signal(i == selected)
+	preload("res://ui/font_scale.gd").apply(self,selected)
 
 func _card() -> VBoxContainer:
 	var panel := PanelContainer.new()

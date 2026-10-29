@@ -31,6 +31,7 @@ var _avoid_target := Vector2.INF
 var _avoid_elapsed := 0.0
 var _icon_hover := 0.0
 var _icon_focus := Vector2.INF
+var font_level := 0
 
 func _ready() -> void:
 	var data_directory := OS.get_environment("CLOUD_DRAGON_DATA_DIR")
@@ -67,6 +68,7 @@ func _ready() -> void:
 	panel.content_replace_requested.connect(_replace)
 	panel.settings_requested.connect(_show_settings)
 	panel.dismiss_requested.connect(panel_window.hide)
+	panel.layout_changed.connect(func(): _fit_settings_font.call_deferred())
 	settings.dismiss_requested.connect(settings_window.hide)
 	settings.hide_pet_requested.connect(func(): settings_window.hide(); panel_window.hide(); desktop.hide_pet())
 	settings.quit_requested.connect(_quit)
@@ -75,6 +77,7 @@ func _ready() -> void:
 	settings.appearance_requested.connect(_set_appearance)
 	settings.startup_requested.connect(_set_startup)
 	settings.icon_awareness_requested.connect(_set_icon_awareness)
+	settings.font_level_requested.connect(_set_font_level)
 	icon_awareness.state_changed.connect(_refresh_icon_awareness)
 	_refresh_startup()
 	desktop.pet_clicked.connect(_handle_pet_click)
@@ -93,6 +96,7 @@ func _ready() -> void:
 	desktop.drag_started.connect(func(): panel_window.hide(); settings_window.hide(); pet.play_action(&"dragging"))
 	desktop.drag_finished.connect(func(_position: Vector2i): pet.play_action(&"idle"); _save_preferences())
 	preferences.load(preferences_path)
+	_apply_font_level(preferences.get_value("ui","font_level",0))
 	_apply_appearance(preferences.get_value("pet","appearance_style","jade"),preferences.get_value("pet","appearance_color","jade"))
 	companionship.restore(preferences.get_value("companionship", "active_seconds", 0.0))
 	_preferences_ready = true
@@ -331,6 +335,28 @@ func _set_scale(value: float) -> void:
 	pet.set_display_scale(value)
 	_save_preferences()
 
+func _apply_font_level(value: Variant) -> void:
+	font_level = preload("res://ui/font_scale.gd").valid_level(value)
+	settings.set_font_level(font_level)
+	panel.set_font_level(font_level)
+	desktop.set_font_level(font_level)
+	_fit_settings_font.call_deferred()
+
+func _fit_settings_font() -> void:
+	var width := maxi(360,ceili(settings.get_combined_minimum_size().x))
+	settings_window.min_size = Vector2i(width,420)
+	if settings_window.size.x < width:
+		settings_window.size.x = width
+	if settings_window.visible: _place_panel(settings_window)
+	var plan_minimum := panel.get_combined_minimum_size().ceil()
+	panel_window.min_size = Vector2i(maxi(360,int(plan_minimum.x)),maxi(420,int(plan_minimum.y)))
+	panel_window.size = panel_window.size.max(panel_window.min_size)
+	if panel_window.visible: _place_panel(panel_window)
+
+func _set_font_level(value: int) -> void:
+	_apply_font_level(value)
+	_save_preferences()
+
 func _apply_appearance(style: Variant, color: Variant) -> void:
 	var selected := Appearance.selection(style,color)
 	var selected_style: String = selected[0]
@@ -349,6 +375,7 @@ func _save_preferences() -> void:
 	if not _preferences_ready:
 		return
 	preferences.set_value("pet", "scale", pet.scale.x)
+	preferences.set_value("ui", "font_level", font_level)
 	preferences.set_value("pet", "position", get_window().position)
 	preferences.set_value("companionship", "active_seconds", companionship.active_seconds)
 	preferences.set_value("pet","icon_awareness",icon_awareness.enabled)

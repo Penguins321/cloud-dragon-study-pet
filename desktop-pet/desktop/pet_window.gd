@@ -21,6 +21,8 @@ var _tray: StatusIndicator
 var _menu: PopupMenu
 var _right_pressed := false
 var _context_pending := false
+var _font_level := 0
+var _menu_font_size := 16
 
 func _ready() -> void:
 	_window = get_window()
@@ -47,6 +49,7 @@ func _ready() -> void:
 	_menu.add_item("隐藏宠物", 2)
 	_menu.add_item("退出", 3)
 	add_child(_menu)
+	_menu_font_size = _menu.get_theme_font_size("font_size")
 	_menu.id_pressed.connect(_on_menu)
 	if DisplayServer.has_feature(DisplayServer.FEATURE_STATUS_INDICATOR):
 		_tray = StatusIndicator.new()
@@ -63,7 +66,10 @@ func _ready() -> void:
 			_tray.menu = _tray.get_path_to(_menu)
 		_tray.pressed.connect(func(button: int, _position: Vector2i):
 			if button == MOUSE_BUTTON_LEFT:
-				show_pet()
+				if OS.get_name() == "macOS" and _font_level > 0:
+					_queue_context_menu()
+				else:
+					show_pet()
 			elif button == MOUSE_BUTTON_RIGHT and _tray.menu.is_empty():
 				_queue_context_menu()
 		)
@@ -91,6 +97,19 @@ func set_visual_geometry(bounds: Rect2, hit_polygon: PackedVector2Array) -> void
 		_window.size = next_size
 		restore_visible_position(_window.position)
 	_window.mouse_passthrough_polygon = hit_polygon
+
+func set_font_level(level: int) -> void:
+	_font_level = preload("res://ui/font_scale.gd").valid_level(level)
+	_menu.hide()
+	# Native system menus ignore application font sizes. Detach the tray menu
+	# for larger levels and use the existing pressed -> popup fallback.
+	if is_instance_valid(_tray):
+		_tray.menu = _tray.get_path_to(_menu) if _font_level == 0 and NativeMenu.has_feature(NativeMenu.FEATURE_POPUP_MENU) else NodePath("")
+	_menu.prefer_native_menu = false
+	var menu_theme := Theme.new()
+	menu_theme.set_font_size("font_size","PopupMenu",roundi(_menu_font_size*preload("res://ui/font_scale.gd").FACTORS[_font_level]))
+	_menu.theme = menu_theme
+	_menu.reset_size()
 
 func usable_areas() -> Array[Rect2i]:
 	var areas: Array[Rect2i] = []

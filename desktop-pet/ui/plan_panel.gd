@@ -5,6 +5,7 @@ signal next_requested
 signal content_replace_requested(goal: String, titles: Array[String])
 signal settings_requested
 signal dismiss_requested
+signal layout_changed
 
 var current_label := Label.new()
 var action_button := Button.new()
@@ -19,6 +20,11 @@ var _message := Label.new()
 var _confirm := ConfirmationDialog.new()
 var _snapshot: Dictionary = {}
 var _completed := false
+var _font_level := 0
+
+func set_font_level(level: int) -> void:
+	_font_level = preload("res://ui/font_scale.gd").valid_level(level)
+	preload("res://ui/font_scale.gd").apply(self,_font_level)
 
 func _ready() -> void:
 	var outer := VBoxContainer.new()
@@ -91,8 +97,13 @@ func _ready() -> void:
 	_confirm.dialog_text = "这会重置当前学习进度。确定使用新清单吗？"
 	_confirm.ok_button_text = "替换并重置"
 	_confirm.cancel_button_text = "取消"
+	_confirm.theme = theme.duplicate(true)
+	_confirm.theme.set_stylebox("panel","AcceptDialog",get_theme_stylebox("panel","PanelContainer").duplicate())
+	_confirm.theme.set_color("font_focus_color","Button",Color("193d70"))
 	add_child(_confirm)
 	_confirm.confirmed.connect(_submit_replace)
+	_editor.visibility_changed.connect(func(): layout_changed.emit())
+	_message.visibility_changed.connect(func(): layout_changed.emit())
 
 func render_plan(plan: Dictionary) -> void:
 	_snapshot = plan.duplicate(true)
@@ -126,6 +137,7 @@ func render_plan(plan: Dictionary) -> void:
 	_editor.hide()
 	_body.show()
 	_message.hide()
+	set_font_level(_font_level)
 
 func show_error(message: String) -> void:
 	_message.text = message
