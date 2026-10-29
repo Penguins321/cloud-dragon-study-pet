@@ -23,6 +23,12 @@ static func run(tree: SceneTree, check: Callable) -> void:
 	if code != 0:
 		print("Shortcut verification output: ",output)
 	check.call(code == 0,"shortcut target and working directory preserve paths and have no engine flags")
+	var old_target := directory.path_join("old.exe")
+	service._powershell("$s=(New-Object -ComObject WScript.Shell).CreateShortcut(%s); $s.TargetPath=%s; $s.Save()" % [service._literal(service.shortcut_path),service._literal(old_target)])
+	var upgraded = Startup.new(directory,executable)
+	check.call(upgraded.is_enabled(),"upgrade preserves enabled startup")
+	var refreshed: Dictionary = upgraded._powershell("$s=(New-Object -ComObject WScript.Shell).CreateShortcut(%s); if($s.TargetPath -ne %s){exit 1}" % [upgraded._literal(upgraded.shortcut_path),upgraded._literal(executable.replace("/","\\"))])
+	check.call(refreshed.code == 0,"opening new executable refreshes stale startup target")
 	var sibling := directory.path_join("unrelated.txt")
 	var file := FileAccess.open(sibling,FileAccess.WRITE)
 	file.store_string("keep")

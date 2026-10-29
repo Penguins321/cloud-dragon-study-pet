@@ -28,7 +28,7 @@ func _ready() -> void:
 	_window.transparent = true
 	_window.transparent_bg = true
 	_window.borderless = true
-	_window.always_on_top = false
+	_window.always_on_top = true
 	_window.unresizable = true
 	_window.unfocusable = true
 	# The desktop compositor presents this transparent window; avoid a second GL
@@ -68,13 +68,22 @@ func _ready() -> void:
 				_queue_context_menu()
 		)
 	var timer := Timer.new()
-	timer.wait_time = 2.0
+	timer.wait_time = 0.5
 	timer.timeout.connect(func():
 		if _window.visible and not _pressed:
 			restore_visible_position(_window.position)
+			_ensure_topmost()
 	)
 	add_child(timer)
 	timer.start()
+	_ensure_topmost.call_deferred()
+
+func _ensure_topmost() -> void:
+	if DisplayServer.get_name() == "headless" or not _window.visible or _window.mode == Window.MODE_MINIMIZED:
+		return
+	# Reassert at the display server: the Window property can already be true
+	# while native window style or mode transitions have changed its Z order.
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true, _window.get_window_id())
 
 func set_visual_geometry(bounds: Rect2, hit_polygon: PackedVector2Array) -> void:
 	var next_size := Vector2i(bounds.end.ceil())
@@ -103,6 +112,7 @@ func restore_visible_position(saved: Vector2i) -> void:
 func show_pet() -> void:
 	restore_visible_position(_window.position)
 	_window.mode = Window.MODE_WINDOWED
+	_ensure_topmost.call_deferred()
 	pet_visibility_changed.emit(true)
 
 func hide_pet() -> void:

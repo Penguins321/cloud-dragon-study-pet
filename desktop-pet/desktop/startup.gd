@@ -27,6 +27,9 @@ func _init(directory_override := "", executable_override := "") -> void:
 		directory = result.text
 	shortcut_path = directory.path_join(SHORTCUT_NAME)
 	available = true
+	# Keep an existing opt-in pointing at the executable the user just opened.
+	if is_enabled():
+		set_enabled(true)
 
 func is_enabled() -> bool:
 	return not shortcut_path.is_empty() and FileAccess.file_exists(shortcut_path)
