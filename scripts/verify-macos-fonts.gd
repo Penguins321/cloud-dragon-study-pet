@@ -2,7 +2,21 @@ extends SceneTree
 
 # Run from a fresh scratch project and inspect the actual final ZIP's PCK.
 func _initialize() -> void:
+	# A script error can abort run() without stopping SceneTree. Fail closed.
+	create_timer(30.0).timeout.connect(func():
+		printerr("Package verification timed out")
+		quit(1)
+	)
 	call_deferred("run")
+
+static func shader_parameter_above(material: ShaderMaterial, parameter: StringName, minimum: float) -> bool:
+	if material == null or material.shader == null:
+		return false
+	var value: Variant = material.get_shader_parameter(parameter)
+	# ShaderMaterial only supplies overrides here; the GPU also uses defaults.
+	if value == null:
+		value = RenderingServer.shader_get_parameter_default(material.shader.get_rid(), parameter)
+	return (value is float or value is int) and value > minimum
 
 func run() -> void:
 	if not ProjectSettings.load_resource_pack(OS.get_environment("INSPECT_PCK")):
@@ -31,8 +45,8 @@ func run() -> void:
 			var pixels: Image = app.pet.actor._view_3d.viewport.get_texture().get_image()
 			renderer_ok = pixels.get_pixel(0,0).a < 0.001
 			var core = app.pet.actor._view_3d.stones[1]
-			renderer_ok = renderer_ok and core.get_child_count()==1 and core.material_override.get_shader_parameter("core_energy")>0.0
-			renderer_ok = renderer_ok and core.material_override.get_shader_parameter("refraction_index")>1.1
+			renderer_ok = renderer_ok and core.get_child_count()==1 and shader_parameter_above(core.material_override, &"core_energy", 0.0)
+			renderer_ok = renderer_ok and shader_parameter_above(core.material_override, &"refraction_index", 1.1)
 			app.pet.set_process(false)
 			app.pet.select_action(&"orbit")
 			for frame in range(120): app.pet._process(1.0/60)
