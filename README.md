@@ -6,17 +6,27 @@ Windows / macOS 离线桌面学习伙伴。半透明玉核、独立伴生玉片�
 
 ## 安装与分享
 
-当前版本 **v0.15.1**。分发文件位于 `desktop-pet/build/dist/`：
+当前版本 **v0.16**。分发文件位于 `desktop-pet/build/dist/`：
 
-- `WarmJade-v0.15.1-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
-- `WarmJade-v0.15.1-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
+- `WarmJade-v0.16-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
+- `WarmJade-v0.16-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
 - `SHA256SUMS.txt`：供分发核验文件完整性。
 
 安装仅针对当前用户，不要求管理员权限。卸载保留学习进度。安装包与程序尚未签名；构建与验证范围见 [打包说明](desktop-pet/packaging/README.md)。生成的二进制不提交 Git。
 
-## 图标感知与新动作
+## 按自己的节奏学习
 
-v0.15.1 恢复干净的晶体形象，保留 3D 晶体、内部光芯和原有 15 个互动动作，并新增双片环绕、螺旋升降、交错环绕和核心巡光；火焰主题与火焰粒子已移除。温润玉晶、澄透水晶、幻彩欧泊支持 3D，并可在设置切回原版 2D。其他主题保留原有渲染。详情见 [v0.15.1 发布验证](desktop-pet/docs/release-v0.15.1.md)。
+学习页与设置页统一为浅玉色卡片。你可以追加任务、修订当前任务与目标、撤销当前项完成，已有进度会保留；整单替换仍会确认并重置进度。任务完成与开始下一项始终由你操作。
+
+专注卡支持 5–120 分钟、暂停、继续和结束本轮。计时独立于任务进度，记录开始时的任务标题；隐藏宠物时继续，休眠后自动暂停，退出重启后手动继续。累计专注与可见陪伴时间分别记录。
+
+设置分为外观、陪伴、桌面、数据与帮助。支持自然 / 安静陪伴、减少动态、30 / 60 FPS、置顶开关和三组外观搭配。自然模式闲置时偶尔轻轻活动；专注、菜单、拖动、打开面板时暂停自主表演。
+
+数据页可导出不带进度的清单模板或带进度的计划备份，导入先预览再确认；可恢复最近备份或导入前计划。计划备份不包含外观设置与专注统计。设置与成长另有本地备份保护，主备均损坏时保留原文件并报告。详情见 [v0.16 说明与验证](desktop-pet/docs/release-v0.16.md)。
+
+## 能量核心与互动
+
+三块刚性晶体、内部能量与 19 个互动动作构成温玉灵核。温润玉晶、澄透水晶、幻彩欧泊支持 3D，也可切回 2D。专注时内部光线平稳收敛，减少动态时悬浮与粒子运动更慢；主动预览保留完整动作。形象原则见 [能量核心结构](desktop-pet/docs/energy-core-structure.md)。
 
 设置中可开关桌面图标感知：只读位置，停留在图标附近时轻轻转向，遮挡时尽量移开，不读取文件内容。新增行走、捧腹大笑、跳跃、连跳、回旋、摇摆，点击或设置页可预览；全部动作结束回悬浮。详见 [图标与动作说明](desktop-pet/docs/icon-awareness-v0.11.md)。
 
@@ -38,7 +48,7 @@ v0.15.1 恢复干净的晶体形象，保留 3D 晶体、内部光芯和原有 1
 
 已添加 macOS 自启动、Universal 导出和本地签名 / 可选公证打包流程。首版关闭桌面图标感知；真实 Mac 的置顶、菜单栏和安装验收仍待完成。Mac 上执行 `bash test-macos.sh` 和 `bash build-macos.sh`，详见 [Mac 构建与朋友试用说明](desktop-pet/packaging/MACOS.md)。
 
-Windows 直接打包朋友试用版：`python scripts/build-macos-friends.py`。发送生成的 `desktop-pet/build/macos/WarmJade-Friends-macOS-0.15.1.zip` 即可，不需要 Apple 开发者证书。
+Windows 直接打包朋友试用版：`python scripts/build-macos-friends.py`。生成 `desktop-pet/build/macos/WarmJade-Friends-macOS-0.16.zip`，使用本地签名，不需要 Apple 开发者证书。
 
 ## 开发与验证
 
@@ -57,5 +67,6 @@ Windows 直接打包朋友试用版：`python scripts/build-macos-friends.py`。
 - [全部动作轨迹及水晶材质](desktop-pet/docs/jade-motion-v0.8.md)
 - [设置页优化](desktop-pet/docs/settings-v0.9.md)
 - [形象设计资料](assets/companions/warm-jade-core/2026-10-26/README.md)
+- [本轮开源项目调研](docs/research/2026-10-30-open-source-desktop-pets.md)、[产品体验调研](docs/research/2026-10-30-companion-experience.md)、[升级设计](docs/superpowers/specs/2026-10-30-companion-v016-design.md)
 
 Godot 引擎与第三方许可随安装版和便携版分发。本项目尚未选择对外开源许可证。旧云龙 / 玉龙实现与历史设计档案保留，但不作为当前默认形象。

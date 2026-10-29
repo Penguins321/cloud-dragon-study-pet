@@ -4,7 +4,7 @@
 
 ## 没有开发者证书：直接发朋友 ZIP
 
-当前请发送 `WarmJade-Friends-macOS-0.15.1.zip`，设置页顶部显示“版本 0.15.1 · 3D 晶体与全局字号”。本版恢复原始晶体形象，仅保留晶体 3D，移除火焰。字号覆盖设置、学习计划、任务列表、编辑输入框和确认弹窗。构建脚本从最终 ZIP 提取 PCK，在隔离项目检查所有页面字号、动态任务行、重启恢复，以及实际 GPU 渲染和 3D 开关。升级前退出旧应用，再替换“应用程序”中的 WarmJade.app。Windows 主机验证不替代 Mac 真机验收，真机状态为待验收。
+当前请发送 `WarmJade-Friends-macOS-0.16.zip`，设置页顶部显示“版本 0.16 · 按自己的节奏，相伴学习”。本版恢复原始晶体形象，仅保留晶体 3D，移除火焰。字号覆盖设置、学习计划、任务列表、编辑输入框和确认弹窗。构建脚本从最终 ZIP 提取 PCK，在隔离项目检查所有页面字号、动态任务行、重启恢复，以及实际 GPU 渲染和 3D 开关。升级前退出旧应用，再替换“应用程序”中的 WarmJade.app。Windows 主机验证不替代 Mac 真机验收，真机状态为待验收。
 
 Windows 上已有项目开发环境时运行 `python scripts/build-macos-friends.py`。脚本下载并校验官方 Mac 模板，调用 Godot 内置 ad-hoc 签名直接导出 ZIP，保留执行权限；生成 `desktop-pet/build/macos/WarmJade-Friends-macOS.zip`。把这一个文件发给朋友即可，内含 `WarmJade.app`、中文安装说明及第三方许可。朋友不需要安装开发工具。
 

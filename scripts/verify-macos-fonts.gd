@@ -69,12 +69,30 @@ func run() -> void:
 	ok = ok and appearance.selection("flame","ember") == ["jade","jade"] and not app.settings._style_buttons.has("flame")
 	app._render()
 	ok = ok and app.panel._list.get_child(0).get_theme_font_size("font_size") > editor_base
+	var workflow_ok: bool = app.has_method("_set_companion_mode") and app.has_method("_append_task")
+	var packaged_task_count := 0
+	if workflow_ok:
+		app._set_companion_mode("quiet")
+		app._set_reduced_motion(true)
+		app._set_performance("eco")
+		app._set_topmost(false)
+		var before_count: int = app.plan.data.tasks.size()
+		app._append_task("导出包工作流验证")
+		packaged_task_count = before_count+1
+		workflow_ok = app.plan.data.tasks.size() == packaged_task_count and app.settings.category_tabs.get_tab_count() == 4
+		app._focus_action("start",5)
+		app.focus_session.advance(1.0)
+		app._save_preferences()
 	app.free()
 	await process_frame
 	app = scene.instantiate()
 	root.add_child(app)
 	ok = ok and app.font_level == 3 and app.panel.current_label.get_theme_font_size("font_size") == large and app.renderer_mode == "3d" and renderer_ok
+	workflow_ok = workflow_ok and app.companion_mode == "quiet" and app.reduced_motion and app.performance_mode == "eco" and not app.topmost_enabled
+	workflow_ok = workflow_ok and app.focus_session.state == "paused" and app.focus_session.total_focus_seconds >= 1.0 and app.plan.data.tasks.size() == packaged_task_count
+	ok = ok and workflow_ok
 	app.free()
 	print("MAC PACKAGE ALL-PAGE FONT SYNC: ","PASS" if ok else "FAIL"," ",names," plan ",base," -> ",large)
 	print("MAC PACKAGE RENDERER STATE/GPU: ",renderer_ok," graphics=",OS.get_cmdline_user_args().has("--render-check"))
+	print("PACKAGE V016 WORKFLOW/PERSISTENCE: ",workflow_ok)
 	quit(0 if ok else 1)

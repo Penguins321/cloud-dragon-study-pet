@@ -1,4 +1,4 @@
-param([string]$Version = '0.15.1')
+param([string]$Version = '0.16')
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+(\.\d+)?$') { throw 'Version must be numeric.' }
 $parsedVersion = [version]$Version

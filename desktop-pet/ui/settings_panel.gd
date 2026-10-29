@@ -14,6 +14,19 @@ signal startup_requested(enabled: bool)
 signal icon_awareness_requested(enabled: bool)
 signal font_level_requested(level: int)
 signal renderer_mode_requested(mode: String)
+signal companion_mode_requested(mode: String)
+signal reduced_motion_requested(value: bool)
+signal performance_requested(mode: String)
+signal topmost_requested(value: bool)
+signal data_action_requested(action: String)
+var category_tabs := TabContainer.new()
+var companion_mode := OptionButton.new()
+var reduced_motion := CheckButton.new()
+var performance_mode := OptionButton.new()
+var topmost_button := CheckButton.new()
+var companionship_info := Label.new()
+var preset_buttons: Array[Button] = []
+var _category_sections: Dictionary = {}
 var renderer_button: CheckButton
 var renderer_status: Label
 
@@ -28,10 +41,12 @@ var appearance_preview: SubViewportContainer
 var _appearance_title: Label
 var _style_buttons: Dictionary = {}
 var _color_buttons: Dictionary = {}
+var _scale_buttons: Dictionary = {}
 var _selected_style := "jade"
 var _selected_color := "jade"
 
 func _ready() -> void:
+	theme = preload("res://ui/study_theme.tres")
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation",18)
 	add_child(outer)
@@ -41,15 +56,12 @@ func _ready() -> void:
 	header.add_child(_label("◇  温玉灵核",13,Color("627861")))
 	header.add_child(_label("设置",26,Color("284a40")))
 	header.add_child(_label("让陪伴，恰到好处。",13,Color("627362")))
-	header.add_child(_label("版本 0.15.1 · 3D 晶体与全局字号",11,Color("627362")))
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	outer.add_child(scroll)
-	_sections = VBoxContainer.new()
-	_sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_sections.add_theme_constant_override("separation",14)
-	scroll.add_child(_sections)
+	header.add_child(_label("版本 0.16 · 按自己的节奏，相伴学习",11,Color("627362")))
+	category_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	category_tabs.custom_minimum_size.y = 180
+	outer.add_child(category_tabs)
+	for category in ["外观","陪伴","桌面","数据与帮助"]: _add_category(category)
+	_sections = _category_sections["外观"]
 	var font_card := _card()
 	font_card.add_child(_label("全局界面字号",16))
 	var font_choices := GridContainer.new()
@@ -78,6 +90,8 @@ func _ready() -> void:
 	renderer_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	renderer_card.add_child(renderer_status)
 	_build_appearance_card()
+	_sections = _category_sections["桌面"]
+	_build_desktop_options()
 	var startup_card := _card()
 	var startup_row := HBoxContainer.new()
 	startup_card.add_child(startup_row)
@@ -114,24 +128,24 @@ func _ready() -> void:
 	sizes.add_theme_constant_override("separation",6)
 	display.add_child(sizes)
 	var group := ButtonGroup.new()
-	var saved := ConfigFile.new()
-	var data_directory := OS.get_environment("CLOUD_DRAGON_DATA_DIR")
-	saved.load("user://preferences.cfg" if data_directory.is_empty() else data_directory.path_join("preferences.cfg"))
-	var selected: float = saved.get_value("pet","scale",1.0)
+	var selected := 1.0
 	for entry in [["50%\n更小",0.5],["75%\n小",0.75],["100%\n中",1.0],["125%\n大",1.25]]:
 		var button := Button.new()
 		button.text = entry[0]
 		button.toggle_mode = true
 		button.button_group = group
 		button.button_pressed = is_equal_approx(entry[1],selected)
+		_scale_buttons[entry[1]] = button
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.add_theme_font_size_override("font_size",14)
 		button.pressed.connect(func(): display_scale_requested.emit(entry[1]))
 		sizes.add_child(button)
+	_sections = _category_sections["陪伴"]
+	_build_companion_options()
 	var motion := _card()
 	motion.add_child(_label("动作预览",16))
 	var motions := GridContainer.new()
-	motions.columns = 3
+	motions.columns = 2
 	motions.add_theme_constant_override("h_separation",6)
 	motions.add_theme_constant_override("v_separation",6)
 	motion.add_child(motions)
@@ -145,6 +159,8 @@ func _ready() -> void:
 	var note := _label("轻点切换动作，按住拖动；点光笺查看计划。",12,Color("627362"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_sections.add_child(note)
+	_sections = _category_sections["数据与帮助"]
+	_build_data_help()
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation",8)
 	outer.add_child(footer)
@@ -160,6 +176,7 @@ func _ready() -> void:
 func _label(text: String, size: int, color := Color("35564a")) -> Label:
 	var label := Label.new()
 	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.add_theme_font_size_override("font_size",size)
 	label.add_theme_color_override("font_color",color)
 	return label
@@ -168,10 +185,19 @@ func set_font_level(level: int) -> void:
 	var selected := preload("res://ui/font_scale.gd").valid_level(level)
 	for i in font_buttons.size(): font_buttons[i].set_pressed_no_signal(i == selected)
 	preload("res://ui/font_scale.gd").apply(self,selected)
+	category_tabs.add_theme_font_size_override("font_size",roundi(14*preload("res://ui/font_scale.gd").FACTORS[selected]))
+	var tab_bar := category_tabs.get_tab_bar()
+	if not tab_bar.has_meta("normal_font_size"):
+		tab_bar.set_meta("normal_font_size",tab_bar.get_theme_font_size("font_size"))
+	tab_bar.add_theme_font_size_override("font_size",roundi(int(tab_bar.get_meta("normal_font_size"))*preload("res://ui/font_scale.gd").FACTORS[selected]))
 
 func set_renderer_mode(mode: String, message := "") -> void:
 	renderer_button.set_pressed_no_signal(mode == "3d")
 	renderer_status.text = message if not message.is_empty() else ("晶体使用立体 3D，保留原有动作。" if mode == "3d" else "使用原版 2D 晶体。")
+
+func set_display_scale_selection(scale: float) -> void:
+	for value in _scale_buttons:
+		_scale_buttons[value].set_pressed_no_signal(is_equal_approx(float(value),scale))
 
 func _card() -> VBoxContainer:
 	var panel := PanelContainer.new()
@@ -220,6 +246,17 @@ func _build_appearance_card() -> void:
 	stage.add_child(appearance_preview)
 	_appearance_title = _label("",14)
 	card.add_child(_appearance_title)
+	var presets := VBoxContainer.new()
+	card.add_child(presets)
+	for entry in [["青玉 · 温润日常","jade","jade"],["月白 · 澄澈静心","glass","moon"],["紫晶 · 幻彩灵感","opal","violet"]]:
+		var button := Button.new()
+		button.text = entry[0]
+		button.toggle_mode = true
+		button.set_meta("preset_style",entry[1])
+		button.set_meta("preset_color",entry[2])
+		button.pressed.connect(func(): _choose_appearance(entry[1],entry[2]))
+		preset_buttons.append(button)
+		presets.add_child(button)
 	var styles := GridContainer.new()
 	styles.columns = 2
 	styles.add_theme_constant_override("h_separation",5)
@@ -290,6 +327,8 @@ func set_appearance(style: String, color: String) -> void:
 		_color_buttons[entry.id].text = ("✓ " if selected else "● ") + entry.name
 		if selected: color_name = entry.name
 	_appearance_title.text = style_name + " · " + color_name
+	for button in preset_buttons:
+		button.set_pressed_no_signal(button.get_meta("preset_style") == _selected_style and button.get_meta("preset_color") == _selected_color)
 
 func _compact_appearance_button(button: Button) -> void:
 	for state in ["normal","hover","pressed","disabled"]:
@@ -299,3 +338,78 @@ func _compact_appearance_button(button: Button) -> void:
 		style.content_margin_left = 8
 		style.content_margin_right = 8
 		button.add_theme_stylebox_override(state,style)
+
+
+func _add_category(title: String) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.name = title
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	category_tabs.add_child(scroll)
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_top",12)
+	scroll.add_child(margin)
+	var sections := VBoxContainer.new()
+	sections.add_theme_constant_override("separation",12)
+	margin.add_child(sections)
+	_category_sections[title] = sections
+
+func _build_desktop_options() -> void:
+	var card := _card()
+	card.add_child(_label("窗口与性能",16))
+	topmost_button.text = "保持宠物在最前"
+	topmost_button.accessibility_name = "保持宠物在最前"
+	topmost_button.toggled.connect(func(value): topmost_requested.emit(value))
+	card.add_child(topmost_button)
+	performance_mode.add_item("流畅 · 60 FPS")
+	performance_mode.add_item("节能 · 30 FPS")
+	performance_mode.accessibility_name = "性能档位"
+	performance_mode.item_selected.connect(func(index): performance_requested.emit("smooth" if index == 0 else "eco"))
+	card.add_child(performance_mode)
+	card.add_child(_label("隐藏时自动降低处理；再次显示沿用所选档位。",12,Color("627362")))
+
+func _build_companion_options() -> void:
+	var card := _card()
+	card.add_child(_label("陪伴的分寸",16))
+	companion_mode.add_item("自然陪伴 · 偶尔轻轻活动")
+	companion_mode.add_item("安静陪伴 · 不主动表演")
+	companion_mode.accessibility_name = "陪伴模式"
+	companion_mode.item_selected.connect(func(index): companion_mode_requested.emit("natural" if index == 0 else "quiet"))
+	card.add_child(companion_mode)
+	reduced_motion.text = "减少动态"
+	reduced_motion.accessibility_name = "减少动态"
+	reduced_motion.toggled.connect(func(value): reduced_motion_requested.emit(value))
+	card.add_child(reduced_motion)
+	var note := _label("专注时玉核会安静下来；你仍可主动预览动作。",12,Color("627362"))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(note)
+	companionship_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(companionship_info)
+	set_companionship_info(0,0,0)
+
+func set_companion_options(mode: String, reduced: bool, performance: String, topmost: bool) -> void:
+	companion_mode.select(1 if mode == "quiet" else 0)
+	reduced_motion.set_pressed_no_signal(reduced)
+	performance_mode.select(1 if performance == "eco" else 0)
+	topmost_button.set_pressed_no_signal(topmost)
+
+func set_companionship_info(active_seconds: float, focus_seconds: float, completed_sessions: int) -> void:
+	companionship_info.text = "相伴 %.1f 小时 · 累计专注 %d 分钟\n完整专注 %d 次 · 成长与专注分别记录" % [maxf(active_seconds,0)/3600.0,int(maxf(focus_seconds,0)/60.0),maxi(completed_sessions,0)]
+
+func _build_data_help() -> void:
+	var card := _card()
+	card.add_child(_label("把计划妥善收好",16))
+	for entry in [["导入计划","import"],["导出模板","template"],["导出备份","backup"],["恢复最近备份","restore"],["恢复导入前计划","restore_import"],["打开数据目录","folder"],["使用帮助","help"]]:
+		var button := Button.new()
+		button.text = entry[0]
+		button.pressed.connect(func(): data_action_requested.emit(entry[1]))
+		card.add_child(button)
+	var scopes := _label("模板只含目标与任务，不含完成状态；备份保留计划进度。两者都不包含外观、陪伴设置或专注统计。导入先预览，确认后才替换当前计划。",12,Color("627362"))
+	scopes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(scopes)
+	var help := _card()
+	help.add_child(_label("从这里开始",16))
+	var instructions := _label("点玉核切换动作，按住拖动。点光笺查看近期目标与学习计划。\n\n任务由你手动标记完成，再手动开始下一项；专注计时不会改变清单进度。追加任务或修订当前内容可保留进度。\n\n专注支持暂停、继续和结束本次；系统休眠后恢复为暂停。\n\n收起或按 Escape 关闭面板。隐藏宠物后，可从托盘菜单再次显示；退出会结束程序。",13)
+	instructions.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	help.add_child(instructions)

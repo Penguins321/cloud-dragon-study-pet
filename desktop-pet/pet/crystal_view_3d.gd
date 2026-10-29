@@ -68,6 +68,8 @@ func sync(rig: Node2D) -> void:
 	var tint: Color = rig.facet_colors()[2]
 	var gain := 0.80 if rig.energy < 0 else 0.30
 	var energy: float = maxf(0.12,0.55+rig.energy*gain)*(1.0+0.05*sin(rig.phase*1.31))
+	# Focus is a steadier inner light, blended without changing the solid geometry.
+	energy = lerpf(energy, 0.48+maxf(0.0,rig.energy)*0.15, rig.focus_blend)
 	for index in range(3):
 		var origin: Vector2 = rig.parts[index].origin
 		stones[index].position = Vector3((origin.x-225)/100.0,-(origin.y-15)/100.0,0)

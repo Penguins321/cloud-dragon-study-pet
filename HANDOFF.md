@@ -27,6 +27,8 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 ## 立即接着做什么
 
+**最新升级：v0.16 日用学习陪伴。** 本轮先完成 [源码审计](docs/research/2026-10-30-current-product-audit.md)、[六个开源项目](docs/research/2026-10-30-open-source-desktop-pets.md)、[五个产品](docs/research/2026-10-30-companion-experience.md) 的信息收集，再按 [设计](docs/superpowers/specs/2026-10-30-companion-v016-design.md) 和 [计划](docs/superpowers/plans/2026-10-30-companion-v016.md) 实施。当前功能、验收证据和外部待验收项见 [v0.16 发布记录](desktop-pet/docs/release-v0.16.md)。保留能量核心、离线、手动推进与无惩罚成长；不要把下方历史待办当作当前实现状态。
+
 **当前接续入口：v0.15.1 能量核心。** 下文 v0.8 / 玉龙条目为历史记录，不能作为当前需求队列。先读 [最新发布验证与未完成项](desktop-pet/docs/release-v0.15.1.md)、[能量核心方向](desktop-pet/docs/energy-core-structure.md) 和 [当前计划](docs/superpowers/plans/2026-10-29-3d-release.md)。本轮已修复 Mac 包验证器默认参数读取，重新构建并验证 Windows 安装/便携包与 Mac ZIP；完整回归为 284 基础检查、11,513 动作检查。当前待办是 Mac 真机、Windows 真实安装集成/多屏/DPI，以及旧机器偶发长帧复现。不要重复制作角色或将安装器当作尚未实现；不自动推送远端。
 
 最新 v0.8：引光已改为聚光成笺，新增半透明水晶渐变与更大动作幅度。所有动作真实轨迹、关键姿态和材质图见 desktop-pet/docs/jade-motion-v0.8.md；215 项回归与动作专项通过，新 EXE 引光全程启动验证退出码 0。

@@ -17,6 +17,45 @@ func replace_content(goal: String, titles: Array[String]) -> Error:
 	data = {"schema_version": 1, "goal": goal.strip_edges(), "tasks": tasks, "current_id": "task_0" if not tasks.is_empty() else ""}
 	return OK
 
+func append_task(title: String) -> Error:
+	var cleaned := title.strip_edges()
+	if cleaned.is_empty() or cleaned.length() > 200 or data.tasks.size() >= 500:
+		return ERR_INVALID_DATA
+	var ids: Array[String] = []
+	for task in data.tasks:
+		ids.append(task.id)
+	var suffix: int = data.tasks.size()
+	while ids.has("task_%d" % suffix):
+		suffix += 1
+	var id := "task_%d" % suffix
+	data.tasks.append({"id": id, "title": cleaned, "completed": false})
+	if data.tasks.size() == 1:
+		data.current_id = id
+	return OK
+
+func rename_current(title: String) -> Error:
+	var cleaned := title.strip_edges()
+	if cleaned.is_empty() or cleaned.length() > 200:
+		return ERR_INVALID_DATA
+	for task in data.tasks:
+		if task.id == data.current_id:
+			task.title = cleaned
+			return OK
+	return ERR_DOES_NOT_EXIST
+
+func set_goal(goal: String) -> Error:
+	if goal.length() > 300:
+		return ERR_INVALID_DATA
+	data.goal = goal.strip_edges()
+	return OK
+
+func undo_current_complete() -> Error:
+	for task in data.tasks:
+		if task.id == data.current_id:
+			task.completed = false
+			return OK
+	return ERR_DOES_NOT_EXIST
+
 func mark_current_complete() -> Error:
 	for task in data.tasks:
 		if task.id == data.current_id:

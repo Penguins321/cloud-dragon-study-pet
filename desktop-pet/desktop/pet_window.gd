@@ -7,6 +7,7 @@ signal pet_visibility_changed(is_visible: bool)
 signal edit_requested
 signal goal_requested
 signal settings_requested
+signal focus_requested
 signal quit_requested
 
 const Geometry = preload("res://desktop/window_geometry.gd")
@@ -23,6 +24,7 @@ var _right_pressed := false
 var _context_pending := false
 var _font_level := 0
 var _menu_font_size := 16
+var topmost_enabled := true
 
 func _ready() -> void:
 	_window = get_window()
@@ -30,7 +32,7 @@ func _ready() -> void:
 	_window.transparent = true
 	_window.transparent_bg = true
 	_window.borderless = true
-	_window.always_on_top = true
+	_window.always_on_top = topmost_enabled
 	_window.unresizable = true
 	_window.unfocusable = true
 	# The desktop compositor presents this transparent window; avoid a second GL
@@ -44,6 +46,7 @@ func _ready() -> void:
 	_menu.add_item("显示宠物", 0)
 	_menu.add_item("今日目标（引光）", 4)
 	_menu.add_item("学习计划…", 1)
+	_menu.add_item("专注计时…", 6)
 	_menu.add_item("设置…", 5)
 	_menu.add_separator()
 	_menu.add_item("隐藏宠物", 2)
@@ -89,7 +92,13 @@ func _ensure_topmost() -> void:
 		return
 	# Reassert at the display server: the Window property can already be true
 	# while native window style or mode transitions have changed its Z order.
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true, _window.get_window_id())
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, topmost_enabled, _window.get_window_id())
+
+func set_topmost(enabled: bool) -> void:
+	topmost_enabled = enabled
+	if is_instance_valid(_window):
+		_window.always_on_top = enabled
+		_ensure_topmost()
 
 func set_visual_geometry(bounds: Rect2, hit_polygon: PackedVector2Array) -> void:
 	var next_size := Vector2i(bounds.end.ceil())
@@ -221,3 +230,6 @@ func _on_menu(id: int) -> void:
 		5:
 			show_pet()
 			settings_requested.emit()
+		6:
+			show_pet()
+			focus_requested.emit()

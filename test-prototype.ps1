@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $enginePath = Join-Path $PSScriptRoot '.tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $enginePath)) { throw 'Missing project-local Godot 4.7.2 engine.' }
 $env:APPDATA = Join-Path $PSScriptRoot '.tools/appdata'
-$env:CLOUD_DRAGON_TEST_DIR = Join-Path $PSScriptRoot '.tools/test-data'
+$env:CLOUD_DRAGON_TEST_DIR = Join-Path $PSScriptRoot ('.tools/test-data-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 function Invoke-CheckedGodot {
     $lines = @(& $enginePath @args 2>&1)
@@ -32,4 +32,10 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_font_scale.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-persistence-test.log') --script res://tests/check_appearance_persistence.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+foreach ($check in @('check_data_tools','check_companion_models','check_v016_ui','check_v016_integration')) {
+    $env:CLOUD_DRAGON_DATA_DIR = Join-Path $PSScriptRoot ('.tools/v016-' + $check + '-' + [guid]::NewGuid().ToString('N'))
+    Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script ('res://tests/' + $check + '.gd')
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
 exit $LASTEXITCODE

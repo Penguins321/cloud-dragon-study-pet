@@ -1,4 +1,4 @@
-param([string]$Version = '0.15.1')
+param([string]$Version = '0.16')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path (Split-Path $PSScriptRoot)
 $setup = Join-Path $root "desktop-pet/build/dist/WarmJade-v$Version-Setup.exe"

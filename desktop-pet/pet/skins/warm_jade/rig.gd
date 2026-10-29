@@ -41,6 +41,8 @@ var _secondary_right := Vector2.ZERO
 var _lag_delta := 0.0
 var _secondary_ready := false
 var _growth := 0.0
+var focus_mode := false
+var focus_blend := 0.0
 const Appearance = preload("res://pet/appearance.gd")
 const Elements = preload("res://pet/element_effects.gd")
 const ElementLayer = preload("res://pet/effects/element_layer.gd")
@@ -193,6 +195,7 @@ func _init() -> void:
 
 func advance_pose(delta: float) -> void:
 	phase += maxf(0.0,delta)
+	focus_blend = move_toward(focus_blend, 1.0 if focus_mode else 0.0, maxf(0.0,delta)*1.5)
 	_attention = _attention.lerp(_attention_goal,1.0-exp(-maxf(0.0,delta)/0.22))
 	_lag_delta = maxf(0.0,delta)
 	sync_pose()
@@ -224,6 +227,9 @@ func set_growth(value: float) -> void:
 	_growth = clampf(value,0.0,1.0) if is_finite(value) else 0.0
 	queue_redraw()
 	_refresh_effects()
+
+func set_focus_mode(enabled: bool) -> void:
+	focus_mode = enabled
 
 func _refresh_effects() -> void:
 	if _use_3d and is_instance_valid(_view_3d): _view_3d.sync(self)
@@ -326,6 +332,7 @@ func _particle_position(index: int) -> Vector2:
 func _draw() -> void:
 	if _use_3d: return
 	var bright := clampf(0.68+0.12*sin(phase*1.31)+energy*0.25,0.25,1.0)
+	bright = lerpf(bright, 0.62+maxf(0.0,energy)*0.12, focus_blend)
 	var center := parts[1].origin
 	draw_texture_rect(glow,Rect2(center-Vector2(100,140),Vector2(200,280)),false,Color(1,1,1,0.42*bright))
 	# Grounding shadow expands softly with hover height.

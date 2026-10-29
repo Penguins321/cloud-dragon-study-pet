@@ -43,13 +43,20 @@ func run() -> void:
 		return
 	app._set_appearance("jade", "jade")
 	app._set_renderer_mode(mode)
+	# Measure the companion itself; the first-run learning panel is a separate UI.
+	app.panel_window.hide()
+	app.settings_window.hide()
+	app._set_companion_mode("quiet")
+	if OS.get_cmdline_user_args().has("--eco"): app._set_performance("eco")
+	if OS.get_cmdline_user_args().has("--focus"): app._focus_action("start",25)
 	# Keep the model mature too: main.gd refreshes the actor from it every frame.
 	app.companionship.restore(app.companionship.MATURE_SECONDS)
 	app._apply_growth()
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var report := {"mode": mode, "adapter": RenderingServer.get_video_adapter_name(),
-		"first_draw_ms": (Time.get_ticks_usec()-started_usec)/1000.0, "phases": {}}
+		"first_draw_ms": (Time.get_ticks_usec()-started_usec)/1000.0, "fps_cap": Engine.max_fps,
+		"focus": app.focus_session.state == "running", "phases": {}}
 	for phase in ["warmup", "idle", "actions"]:
 		var samples: Array[Dictionary] = []
 		var previous := Time.get_ticks_usec()

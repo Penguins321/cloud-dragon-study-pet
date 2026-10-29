@@ -1,6 +1,7 @@
 extends RefCounted
 
 static func run(tree: SceneTree) -> void:
+	tree.create_timer(30.0).timeout.connect(func(): printerr("SMOKE FAIL: validation timed out"); tree.quit(1))
 	if OS.get_environment("CLOUD_DRAGON_DATA_DIR").is_empty():
 		printerr("Smoke tests require isolated CLOUD_DRAGON_DATA_DIR")
 		tree.quit(1)
@@ -14,10 +15,16 @@ static func run(tree: SceneTree) -> void:
 		printerr("SMOKE FAIL: skin or isolated default plan missing")
 		tree.quit(1)
 		return
-	if app.pet.skin.id != &"jade_dragon" or app.breath_effect.visible:
-		printerr("SMOKE FAIL: jade default missing or goal is permanently visible")
+	if app.pet.skin.id != &"warm_jade" or app.breath_effect.visible:
+		printerr("SMOKE FAIL: energy core default missing or goal is permanently visible")
 		tree.quit(1)
 		return
+	if not app.panel_window.visible:
+		printerr("SMOKE FAIL: first-run learning welcome was not shown")
+		tree.quit(1)
+		return
+	app.panel.dismiss_requested.emit()
+	print("SMOKE STAGE: welcome dismissed")
 	_pointer_click(app, app.pet.position + app.pet.map_skin_point(Vector2(380, 45)))
 	if app.pet.current_action != &"swim" or app.panel_window.visible:
 		printerr("SMOKE FAIL: left click did not select movement independently of plan")
@@ -38,16 +45,14 @@ static func run(tree: SceneTree) -> void:
 		printerr("SMOKE FAIL: rapid drag consumed a click action")
 		tree.quit(1)
 		return
-	var right := InputEventMouseButton.new()
-	right.button_index = MOUSE_BUTTON_RIGHT
-	right.pressed = true
-	right.position = app.pet.position+app.pet.map_skin_point(Vector2(404,61))
-	app.desktop._input(right)
-	if not app.desktop._menu.visible or app.panel_window.visible:
-		printerr("SMOKE FAIL: right click did not open the context menu")
+	# Native menu presentation runs an OS modal loop. Do not open it from an
+	# in-process coroutine that must also dismiss it. test_context_menu.gd checks
+	# press/release/deferred sequencing; here verify the real menu's command route.
+	if app.desktop._menu.get_item_index(4) < 0 or app.desktop._menu.get_item_index(6) < 0 or app.panel_window.visible:
+		printerr("SMOKE FAIL: goal/focus context menu commands missing")
 		tree.quit(1)
 		return
-	await _capture(tree,app.desktop._menu,"context-menu")
+	print("SMOKE STAGE: context menu commands checked")
 	app.desktop._menu.id_pressed.emit(4)
 	app.pet.player.seek(1.4,true)
 	app.pet._process(0.0)
@@ -87,6 +92,7 @@ static func run(tree: SceneTree) -> void:
 		tree.quit(1)
 		return
 	app.panel.settings_requested.emit()
+	print("SMOKE STAGE: plan progression checked")
 	await _capture(tree, app.settings_window, "settings")
 	app.settings.display_scale_requested.emit(0.5)
 	if app.pet.scale != Vector2(0.5, 0.5):
@@ -105,6 +111,7 @@ static func run(tree: SceneTree) -> void:
 		printerr("SMOKE FAIL: final installed window region clips artwork")
 		tree.quit(1)
 		return
+	print("SMOKE STAGE: native contours checked")
 	if DisplayServer.get_name() != "headless":
 		for size in [0.5, 1.25]:
 			app.pet.set_display_scale(size)
@@ -128,6 +135,7 @@ static func run(tree: SceneTree) -> void:
 						tree.quit(1)
 						return
 	app.pet.set_display_scale(1.0)
+	print("SMOKE STAGE: rendered coverage checked")
 	app.settings_window.hide()
 	app.desktop.hide_pet()
 	if DisplayServer.has_feature(DisplayServer.FEATURE_STATUS_INDICATOR) and tree.root.mode != Window.MODE_MINIMIZED:
@@ -140,7 +148,13 @@ static func run(tree: SceneTree) -> void:
 		tree.quit(1)
 		return
 	await _capture(tree, tree.root, "desktop-pet")
-	print("SMOKE TEST PASSED: jade default, context menu, breath goal, click actions, rapid drag, study state, scaling, GPU coverage, hide/show")
+	app._focus_action("start",5)
+	app._focus_action("pause")
+	if app.focus_session.state != "paused" or app.settings.category_tabs.get_tab_count() != 4:
+		printerr("SMOKE FAIL: focus workflow or settings categories missing")
+		tree.quit(1)
+		return
+	print("SMOKE TEST PASSED: energy core, first-run welcome, context menu, guiding goal, click/drag, manual progress, focus, scaling, GPU coverage, hide/show")
 	tree.quit()
 
 static func _pointer_click(app: Node, point: Vector2) -> void:
@@ -183,6 +197,19 @@ static func _rendered_pixels_inside_region(window: Window) -> bool:
 
 static func _native_region_covers_artwork(app: Node) -> bool:
 	var membership = load("res://tests/test_coverage.gd")
+	if app.pet.skin.render_texture == null:
+		# Procedural energy-core artwork has no source bitmap. Independently
+		# check every current render contour against the native region; actual
+		# framebuffer coverage is checked below at multiple scales/action phases.
+		for size in [0.5, 0.75, 1.0, 1.25]:
+			app.pet.set_display_scale(size)
+			app._update_geometry()
+			var native: PackedVector2Array = app.get_window().mouse_passthrough_polygon
+			for polygon in app.pet.get_visual_geometry().render_polygons:
+				for point in polygon:
+					if not membership._inside_outline(app.pet.position+point, native): return false
+		app.pet.set_display_scale(1.0)
+		return true
 	var image: Image = app.pet.skin.render_texture.get_image()
 	var factor: Vector2 = app.pet.skin.render_rect.size / Vector2(image.get_size())
 	for size in [0.5, 0.75, 1.0, 1.25]:
