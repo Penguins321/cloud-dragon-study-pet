@@ -1,4 +1,29 @@
 extends Node2D
+signal renderer_failed(message: String)
+var render_mode := "2d"
+var _use_3d := false
+var _view_3d: Node2D
+var _renderer_failed := false
+
+func set_render_mode(mode: String) -> void:
+	render_mode = "3d" if mode == "3d" else "2d"
+	_renderer_failed = false
+	_sync_renderer()
+
+func _sync_renderer() -> void:
+	_use_3d = render_mode == "3d" and appearance_style in ["jade","glass","opal"] and DisplayServer.get_name() != "headless" and not _renderer_failed
+	if _use_3d and not is_instance_valid(_view_3d):
+		_view_3d = preload("res://pet/crystal_view_3d.gd").new()
+		add_child(_view_3d)
+		_view_3d.failed.connect(func(message: String):
+			_renderer_failed = true
+			_sync_renderer()
+			renderer_failed.emit(message)
+		)
+	if is_instance_valid(_view_3d):
+		_view_3d.visible = _use_3d
+		if _use_3d: _view_3d.sync(self)
+	queue_redraw()
 
 # One geometric master per rigid stone; all motion preserves the facets.
 var phase := 0.0
@@ -18,7 +43,6 @@ var _secondary_ready := false
 var _growth := 0.0
 const Appearance = preload("res://pet/appearance.gd")
 const Elements = preload("res://pet/element_effects.gd")
-const FlameFlow = preload("res://pet/flame_flow.gd")
 const ElementLayer = preload("res://pet/effects/element_layer.gd")
 var _effect_layers: Array[Node2D] = []
 var appearance_style := "jade"
@@ -54,7 +78,11 @@ func _init() -> void:
 		"sway": [6.4,0.44,14.0,-14.0,58.0,0.6],
 		"bow": [5.2,0.0,0.0,0.0,0.0,0.0],
 		"roll": [5.8,0.0,0.0,0.0,0.0,0.0],
-		"dance": [6.6,0.0,0.0,0.0,0.0,0.0]
+		"dance": [6.6,0.0,0.0,0.0,0.0,0.0],
+		"orbit": [8.0,0.0,0.0,-8.0,0.0,0.4],
+		"helix": [8.4,0.0,0.0,-12.0,0.0,0.55],
+		"cross_orbit": [8.8,0.0,0.0,-8.0,0.0,0.5],
+		"refract_turn": [8.2,0.0,0.0,-6.0,0.0,0.35]
 	}
 	# Authored beats: anticipation, clear gesture, overshoot, then quiet hover.
 	# Columns are time, lean, spread, lift, drift, energy, gait, turn.
@@ -198,6 +226,7 @@ func set_growth(value: float) -> void:
 	_refresh_effects()
 
 func _refresh_effects() -> void:
+	if _use_3d and is_instance_valid(_view_3d): _view_3d.sync(self)
 	for layer in _effect_layers: layer.refresh()
 
 func set_appearance(style: String, color: String) -> void:
@@ -210,16 +239,19 @@ func set_appearance(style: String, color: String) -> void:
 	if appearance_style == "lightning": _light = Color("dceaff")
 	if appearance_style == "snow": _light = Color("effbff")
 	glow.gradient.colors = PackedColorArray([Color(_light,0.7),Color(_light,0.28),Color(_light,0.06),Color(_light,0.0)])
+	_sync_renderer()
 	queue_redraw()
 	_refresh_effects()
 
 func facet_colors() -> Array[Color]:
+	if appearance_style == "flame":
+		return [Color("ffe2bc"),Color("a85e38"),Color("e9a466"),Color("ffd9a8")]
 	var alpha := 0.64
 	if appearance_style == "glass": alpha = 0.39
 	if appearance_style == "opal": alpha = 0.72
 	if appearance_style == "flame": alpha = 0.76
 	var base := _tint
-	if appearance_style == "flame": base = Color("e8bf8f").lerp(_tint,0.48)
+	if appearance_style == "flame": base = Color("f5c478").lerp(_tint,0.18)
 	if appearance_style == "lightning": base = Color("8a80ae").lerp(_tint,0.35)
 	if appearance_style == "snow": base = Color("bedddc").lerp(_tint,0.15)
 	if appearance_style == "opal":
@@ -234,7 +266,7 @@ func particle_count() -> int:
 	return 28 + floori(44.0*_growth)
 
 func flame_particle_count() -> int:
-	return FlameFlow.ember_particles(self).size() if appearance_style == "flame" else 0
+	return 0
 
 
 func _particle_visibility(index: int) -> float:
@@ -243,6 +275,9 @@ func _particle_visibility(index: int) -> float:
 
 func region_sample_points() -> PackedVector2Array:
 	var points := PackedVector2Array()
+	if _use_3d:
+		for point in _view_3d.projected_centers(): points.append(point)
+		return points
 	for part in parts:
 		points.append(part.origin)
 		points.append(part * Vector2(0,-117))
@@ -254,13 +289,17 @@ func render_regions() -> Array[PackedVector2Array]:
 	# Windows clips drawing to this region. Cover light and dust individually so
 	# unrelated transparent gaps still pass through to the desktop.
 	var result: Array[PackedVector2Array] = []
+	if _use_3d:
+		# The quiet 3D energy motes stay within this same core-relative field.
+		result.append(_ellipse(parts[1].origin+Vector2(0,-14),Vector2(170,190),40))
+		var centers: PackedVector2Array = _view_3d.projected_centers()
+		for index in [0,2]: result.append(_ellipse(centers[index],Vector2(50,50),20))
+		return result
 	result.append(_ellipse(parts[1].origin,Vector2(105,145),32))
 	# The core and its internal light seam rotate as one rigid object.
-	result.append(parts[1] * _ellipse(Vector2.ZERO,Vector2(72,126),32))
+	result.append(parts[1] * _ellipse(Vector2.ZERO,Vector2(84,145) if _use_3d else Vector2(72,126),32))
 	result.append(_ellipse(Vector2(220+drift,277),Vector2(51,10),24))
 	for index in [0,2]: result.append(parts[index] * (Transform2D(0,Vector2.ONE*1.10,0,Vector2.ZERO) * SHARD))
-	if appearance_style == "flame":
-		result.append_array(FlameFlow.regions(self))
 	if appearance_style in ["lightning","snow"]:
 		result.append_array(Elements.regions(self,appearance_style))
 	for index in range(ceili(28+44*_growth)):
@@ -285,6 +324,7 @@ func _particle_position(index: int) -> Vector2:
 	return parts[1].origin+Vector2(sin(angle)*(82+index%5*9),98-age*224)
 
 func _draw() -> void:
+	if _use_3d: return
 	var bright := clampf(0.68+0.12*sin(phase*1.31)+energy*0.25,0.25,1.0)
 	var center := parts[1].origin
 	draw_texture_rect(glow,Rect2(center-Vector2(100,140),Vector2(200,280)),false,Color(1,1,1,0.42*bright))
@@ -363,6 +403,13 @@ func _draw_stone(outline: PackedVector2Array, core: bool, bright: float) -> void
 				var line := PackedVector2Array([Vector2(side*10,-65),Vector2(side*31,-12),Vector2(side*17,21),Vector2(side*6,69)])
 				draw_polyline(line,Color(gold,0.30),0.65,true)
 	if not core: return
+	if appearance_style == "flame":
+		# Warm luminous internal diamond, leaving all four solid facets intact.
+		var pulse := 0.85+0.15*sin(phase*1.4)
+		draw_texture_rect(glow,Rect2(-38,-92,76,184),false,Color(1,0.68,0.22,0.55*pulse))
+		var heart := PackedVector2Array([Vector2(0,-79),Vector2(10,0),Vector2(0,83),Vector2(-10,0)])
+		draw_colored_polygon(heart,Color(1,0.86,0.43,0.94))
+		draw_colored_polygon(PackedVector2Array([Vector2(0,-64),Vector2(5,0),Vector2(0,66),Vector2(-5,0)]),Color(1,0.98,0.78,0.98))
 	# The seam is light on the same solid stone, never an opening in its body.
 	draw_texture_rect(glow,Rect2(-31,-108,62,216),false,Color(1,1,1,bright))
 	draw_polygon(PackedVector2Array([Vector2(0,-115),Vector2(5,-22),Vector2(13,4),Vector2(4,25),Vector2(0,115),Vector2(-4,25),Vector2(-12,4),Vector2(-5,-22)]),PackedColorArray([Color(_light,0.5+0.4*bright)]))

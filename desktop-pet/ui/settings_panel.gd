@@ -13,6 +13,9 @@ signal quit_requested
 signal startup_requested(enabled: bool)
 signal icon_awareness_requested(enabled: bool)
 signal font_level_requested(level: int)
+signal renderer_mode_requested(mode: String)
+var renderer_button: CheckButton
+var renderer_status: Label
 
 var font_buttons: Array[Button] = []
 
@@ -38,6 +41,7 @@ func _ready() -> void:
 	header.add_child(_label("◇  温玉灵核",13,Color("627861")))
 	header.add_child(_label("设置",26,Color("284a40")))
 	header.add_child(_label("让陪伴，恰到好处。",13,Color("627362")))
+	header.add_child(_label("版本 0.15.1 · 3D 晶体与全局字号",11,Color("627362")))
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -64,6 +68,15 @@ func _ready() -> void:
 		font_choices.add_child(button)
 		font_buttons.append(button)
 	font_buttons[0].set_pressed_no_signal(true)
+	var renderer_card := _card()
+	renderer_card.add_child(_label("晶体渲染",16))
+	renderer_button = CheckButton.new()
+	renderer_button.text = "使用立体 3D 晶体"
+	renderer_button.toggled.connect(func(enabled: bool): renderer_mode_requested.emit("3d" if enabled else "2d"))
+	renderer_card.add_child(renderer_button)
+	renderer_status = _label("玉晶、水晶、欧泊支持 3D；关闭恢复原版 2D。",12,Color("627362"))
+	renderer_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	renderer_card.add_child(renderer_status)
 	_build_appearance_card()
 	var startup_card := _card()
 	var startup_row := HBoxContainer.new()
@@ -122,7 +135,7 @@ func _ready() -> void:
 	motions.add_theme_constant_override("h_separation",6)
 	motions.add_theme_constant_override("v_separation",6)
 	motion.add_child(motions)
-	for entry in [["巡游\n弧线行进",&"swim"],["感知\n左右探查",&"look"],["舒展\n展开玉片",&"stretch"],["收息\n安静回落",&"rest"],["共鸣\n起伏应和",&"celebrate"],["引光\n聚光成笺",&"breath"],["行走\n交替踏步",&"walk"],["捧腹大笑\n欢快颤动",&"laugh"],["跳跃\n蓄力腾空",&"jump"],["连跳\n轻盈三连",&"hop"],["回旋\n玉核转动",&"spin"],["摇摆\n左右荡漾",&"sway"],["鞠躬\n轻轻致意",&"bow"],["翻滚\n玉核翻转",&"roll"],["舞蹈\n轻盈起舞",&"dance"]]:
+	for entry in [["巡游\n弧线行进",&"swim"],["感知\n左右探查",&"look"],["舒展\n展开玉片",&"stretch"],["收息\n安静回落",&"rest"],["共鸣\n起伏应和",&"celebrate"],["引光\n聚光成笺",&"breath"],["行走\n交替踏步",&"walk"],["捧腹大笑\n欢快颤动",&"laugh"],["跳跃\n蓄力腾空",&"jump"],["连跳\n轻盈三连",&"hop"],["回旋\n玉核转动",&"spin"],["摇摆\n左右荡漾",&"sway"],["鞠躬\n轻轻致意",&"bow"],["翻滚\n玉核翻转",&"roll"],["舞蹈\n轻盈起舞",&"dance"],["环绕\n玉片绕行",&"orbit"],["螺旋\n盘旋升降",&"helix"],["交错环绕\n前后交汇",&"cross_orbit"],["巡光\n立体转身",&"refract_turn"]]:
 		var button := Button.new()
 		button.text = entry[0]
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -155,6 +168,10 @@ func set_font_level(level: int) -> void:
 	var selected := preload("res://ui/font_scale.gd").valid_level(level)
 	for i in font_buttons.size(): font_buttons[i].set_pressed_no_signal(i == selected)
 	preload("res://ui/font_scale.gd").apply(self,selected)
+
+func set_renderer_mode(mode: String, message := "") -> void:
+	renderer_button.set_pressed_no_signal(mode == "3d")
+	renderer_status.text = message if not message.is_empty() else ("晶体使用立体 3D，保留原有动作。" if mode == "3d" else "使用原版 2D 晶体。")
 
 func _card() -> VBoxContainer:
 	var panel := PanelContainer.new()

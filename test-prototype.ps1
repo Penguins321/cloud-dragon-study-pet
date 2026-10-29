@@ -4,20 +4,32 @@ if (-not (Test-Path -LiteralPath $enginePath)) { throw 'Missing project-local Go
 $env:APPDATA = Join-Path $PSScriptRoot '.tools/appdata'
 $env:CLOUD_DRAGON_TEST_DIR = Join-Path $PSScriptRoot '.tools/test-data'
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_macos_startup.gd
+function Invoke-CheckedGodot {
+    $lines = @(& $enginePath @args 2>&1)
+    $engineExit = $LASTEXITCODE
+    $lines | Write-Output
+    if ($engineExit -ne 0 -or ($lines -match 'SCRIPT ERROR:')) { exit 1 }
+}
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_spatial_actions.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot 'docs/superpowers/execution/test-all.log') --script res://tests/run_tests.gd
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_crystal_only.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/warm-jade-test.log') --script res://tests/test_warm_jade.gd
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_macos_startup.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/big-motion-test.log') --script res://tests/test_big_motion.gd
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot 'docs/superpowers/execution/test-all.log') --script res://tests/run_tests.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/refined-motion-test.log') --script res://tests/test_motion_v13.gd
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/warm-jade-test.log') --script res://tests/test_warm_jade.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/flame-flow-test.log') --script res://tests/check_flame_flow.gd
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/big-motion-test.log') --script res://tests/test_big_motion.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-settings-test.log') --script res://tests/test_appearance_settings.gd
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/refined-motion-test.log') --script res://tests/test_motion_v13.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-settings-test.log') --script res://tests/test_appearance_settings.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 $env:CLOUD_DRAGON_DATA_DIR = Join-Path $PSScriptRoot ('.tools/appearance-persistence-' + [guid]::NewGuid().ToString('N'))
-& $enginePath --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-persistence-test.log') --script res://tests/check_appearance_persistence.gd
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_renderer_mode.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_font_scale.gd
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-persistence-test.log') --script res://tests/check_appearance_persistence.gd
 exit $LASTEXITCODE

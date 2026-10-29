@@ -32,6 +32,7 @@ var _avoid_elapsed := 0.0
 var _icon_hover := 0.0
 var _icon_focus := Vector2.INF
 var font_level := 0
+var renderer_mode := "3d"
 
 func _ready() -> void:
 	var data_directory := OS.get_environment("CLOUD_DRAGON_DATA_DIR")
@@ -78,6 +79,11 @@ func _ready() -> void:
 	settings.startup_requested.connect(_set_startup)
 	settings.icon_awareness_requested.connect(_set_icon_awareness)
 	settings.font_level_requested.connect(_set_font_level)
+	settings.renderer_mode_requested.connect(_set_renderer_mode)
+	pet.actor.renderer_failed.connect(func(message: String):
+		_set_renderer_mode("2d")
+		settings.set_renderer_mode("2d",message)
+	)
 	icon_awareness.state_changed.connect(_refresh_icon_awareness)
 	_refresh_startup()
 	desktop.pet_clicked.connect(_handle_pet_click)
@@ -96,6 +102,7 @@ func _ready() -> void:
 	desktop.drag_started.connect(func(): panel_window.hide(); settings_window.hide(); pet.play_action(&"dragging"))
 	desktop.drag_finished.connect(func(_position: Vector2i): pet.play_action(&"idle"); _save_preferences())
 	preferences.load(preferences_path)
+	_apply_renderer_mode(str(preferences.get_value("pet","renderer_mode","3d")))
 	_apply_font_level(preferences.get_value("ui","font_level",0))
 	_apply_appearance(preferences.get_value("pet","appearance_style","jade"),preferences.get_value("pet","appearance_color","jade"))
 	companionship.restore(preferences.get_value("companionship", "active_seconds", 0.0))
@@ -335,6 +342,16 @@ func _set_scale(value: float) -> void:
 	pet.set_display_scale(value)
 	_save_preferences()
 
+func _apply_renderer_mode(mode: String) -> void:
+	renderer_mode = "3d" if mode == "3d" else "2d"
+	pet.actor.set_render_mode(renderer_mode)
+	settings.appearance_preview.actor.set_render_mode(renderer_mode)
+	settings.set_renderer_mode(renderer_mode)
+
+func _set_renderer_mode(mode: String) -> void:
+	_apply_renderer_mode(mode)
+	_save_preferences()
+
 func _apply_font_level(value: Variant) -> void:
 	font_level = preload("res://ui/font_scale.gd").valid_level(value)
 	settings.set_font_level(font_level)
@@ -376,6 +393,7 @@ func _save_preferences() -> void:
 		return
 	preferences.set_value("pet", "scale", pet.scale.x)
 	preferences.set_value("ui", "font_level", font_level)
+	preferences.set_value("pet","renderer_mode",renderer_mode)
 	preferences.set_value("pet", "position", get_window().position)
 	preferences.set_value("companionship", "active_seconds", companionship.active_seconds)
 	preferences.set_value("pet","icon_awareness",icon_awareness.enabled)

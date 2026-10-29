@@ -31,7 +31,7 @@ func run() -> void:
 	assert(widest > 285.0,"舒展必须明显展开伴生玉片")
 	for action in view.CLICK_ACTIONS:
 		view.select_action(action)
-		for frame in range(420):
+		for frame in range(ceili(view.player.current_animation_length*60)+60):
 			view._process(1.0 / 60.0)
 			for polygon in actor.render_regions():
 				for point in polygon:

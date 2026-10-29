@@ -5,7 +5,6 @@ const STYLES := [
 	{"id":"jade", "name":"温润玉晶", "detail":"柔和玉质 · 细密晶纹"},
 	{"id":"glass", "name":"澄透水晶", "detail":"通透切面 · 冷冽折光"},
 	{"id":"opal", "name":"幻彩欧泊", "detail":"虹彩游移 · 多层流光"},
-	{"id":"flame", "name":"火之精灵", "detail":"晶核为心 · 烈焰环绕"},
 	{"id":"lightning", "name":"雷电精灵", "detail":"分岔电弧 · 脉冲雷光"},
 	{"id":"snow", "name":"冰雪精灵", "detail":"冰晶霜纹 · 轻盈飘雪"}
 ]
@@ -32,9 +31,8 @@ static func color_id(value: Variant) -> String:
 	return "jade"
 
 static func selection(style: Variant, color: Variant) -> Array[String]:
-	# Upgrade the retired fire variants to the requested independent themes.
-	if style == "flame" and color == "gold": return ["lightning","violet"]
-	if style == "flame" and color == "bluefire": return ["snow","ice"]
+	# All retired fire appearances return to the original clean crystal.
+	if style == "flame": return ["jade","jade"]
 	return [style_id(style),color_id(color)]
 
 static func tint(value: Variant) -> Color:
