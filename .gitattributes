@@ -3,3 +3,4 @@
 *.png binary
 *.gif binary
 *.exe binary
+*.sh text eol=lf

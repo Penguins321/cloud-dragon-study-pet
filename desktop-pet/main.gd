@@ -25,7 +25,7 @@ var storage_blocked := false
 var startup_message := ""
 var preferences_path := "user://preferences.cfg"
 var instance_guard = preload("res://desktop/single_instance.gd").new()
-var startup = preload("res://desktop/startup.gd").new()
+var startup = preload("res://desktop/startup_macos.gd").new() if OS.get_name() == "macOS" else preload("res://desktop/startup.gd").new()
 var icon_awareness = preload("res://desktop/icon_awareness.gd").new()
 var _avoid_target := Vector2.INF
 var _avoid_elapsed := 0.0
@@ -96,7 +96,7 @@ func _ready() -> void:
 	_apply_appearance(preferences.get_value("pet","appearance_style","jade"),preferences.get_value("pet","appearance_color","jade"))
 	companionship.restore(preferences.get_value("companionship", "active_seconds", 0.0))
 	_preferences_ready = true
-	icon_awareness.set_enabled(bool(preferences.get_value("pet","icon_awareness",true)))
+	icon_awareness.set_enabled(OS.get_name() == "Windows" and bool(preferences.get_value("pet","icon_awareness",true)))
 	icon_awareness.set_active(true)
 	_last_growth_tick = Time.get_ticks_msec()
 	_apply_growth()

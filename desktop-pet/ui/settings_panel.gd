@@ -150,11 +150,12 @@ func _card() -> VBoxContainer:
 func set_startup_state(supported: bool, enabled: bool, detail: String) -> void:
 	startup_button.disabled = not supported
 	startup_button.set_pressed_no_signal(enabled)
-	startup_status.text = detail if not detail.is_empty() else ("已开启，登录 Windows 后自动陪伴你。" if enabled else "已关闭，需要时手动启动。")
+	startup_status.text = detail if not detail.is_empty() else ("已开启，登录后自动陪伴你。" if enabled else "已关闭，需要时手动启动。")
 
 func set_icon_awareness_state(value: bool, detail: String) -> void:
+	icon_awareness_button.disabled = OS.get_name() != "Windows"
 	icon_awareness_button.set_pressed_no_signal(value)
-	icon_awareness_status.text = detail
+	icon_awareness_status.text = detail if OS.get_name() == "Windows" else "当前平台暂不支持桌面图标感知，其他陪伴功能正常可用。"
 
 func _build_appearance_card() -> void:
 	var card := _card()

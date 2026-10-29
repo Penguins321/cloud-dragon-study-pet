@@ -32,6 +32,10 @@ v0.14 支持 6 种材质 × 7 种颜色，一键应用并记住选择。朱砂�
 
 设置页支持实时换装预览、开机自启动、50% / 75% / 100% / 125% 大小和动作预览，采用浅玉色分组布局。安装版使用固定程序名，升级前先退出旧版。数据保存在 `%APPDATA%\CloudDragonStudyPrototype`，不要把个人数据一起打包给别人。
 
+## macOS 支持
+
+已添加 macOS 自启动、Universal 导出和本地签名 / 可选公证打包流程。首版关闭桌面图标感知；真实 Mac 的置顶、菜单栏和安装验收仍待完成。Mac 上执行 `bash test-macos.sh` 和 `bash build-macos.sh`，详见 [Mac 构建与朋友试用说明](desktop-pet/packaging/MACOS.md)。
+
 ## 开发与验证
 
 ```powershell
