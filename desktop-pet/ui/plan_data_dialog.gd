@@ -28,6 +28,7 @@ func setup(parent_window: Window) -> void:
 	confirmation.dialog_autowrap = true
 	confirmation.theme = preload("res://ui/study_theme.tres").duplicate(true)
 	parent_window.add_child(confirmation)
+	preload("res://ui/window_chrome.gd").install(confirmation)
 	summary_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	summary_scroll.follow_focus = true
 	summary_scroll.focus_mode = Control.FOCUS_ALL

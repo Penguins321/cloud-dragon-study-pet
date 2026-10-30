@@ -6,11 +6,13 @@ Windows / macOS 离线桌面学习伙伴。保留温玉灵核，新增柯基、�
 
 设置 → 外观 → 陪伴形象可切换角色；动物拥有独立的待机、散步、张望、跳跃、致意、转圈与起舞。双击动物轻轻致意，闲置时会朝附近指针转向；拖动优先于动作。玉核保留原材质与渲染选择，并新增招手、亲昵、惊喜、小憩。素材来自 [Gobkit CC0 动物包](https://gobkit.itch.io/gobkit-free-animal-pack)，离线随程序打包，来源与哈希见 [调研记录](docs/research/2026-10-30-3d-companion-assets.md)。
 
+柯基现已补充局部转头、眨眼、耳朵轻动与接触影，保留原始卡通比例和骨骼行走；[细化对照](desktop-pet/docs/screenshots/v0.17/corgi-refinement.png)。
+
 ![水晶玉核材质](desktop-pet/docs/screenshots/jade-crystal-material.png)
 
 ## 安装与分享
 
-当前版本 **v0.17**。分发文件位于 `desktop-pet/build/dist/`：
+当前版本 **v0.17**。执行 `./build-installer.ps1` 按需生成分发文件，输出位于 `desktop-pet/build/dist/`：
 
 - `WarmJade-v0.17-Setup.exe`：发给别人即可安装，支持选择目录、桌面 / 开始菜单快捷方式和卸载。
 - `WarmJade-v0.17-Portable.zip`：解压后运行 `WarmJade.exe`，无需安装 Godot。
@@ -73,4 +75,4 @@ Windows 直接打包朋友试用版：`python scripts/build-macos-friends.py`。
 - [形象设计资料](assets/companions/warm-jade-core/2026-10-26/README.md)
 - [本轮开源项目调研](docs/research/2026-10-30-open-source-desktop-pets.md)、[产品体验调研](docs/research/2026-10-30-companion-experience.md)、[升级设计](docs/superpowers/specs/2026-10-30-companion-v016-design.md)
 
-Godot 引擎与第三方许可随安装版和便携版分发。本项目尚未选择对外开源许可证。旧云龙 / 玉龙实现与历史设计档案保留，但不作为当前默认形象。
+Godot 引擎与第三方许可随安装版和便携版分发。本项目尚未选择对外开源许可证。云龙 / 玉龙的旧实现、专属资源与历史构建已移除；当前只维护温玉灵核和三个动物伙伴。

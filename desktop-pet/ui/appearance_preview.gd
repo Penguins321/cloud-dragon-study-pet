@@ -11,6 +11,7 @@ var _skin_id := "warm_jade"
 var _skin: Resource
 var _player: AnimationPlayer
 var _growth := 0.0
+var render_mode := "3d"
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0,190)
@@ -68,6 +69,10 @@ func set_appearance(style: String, color: String) -> void:
 	if is_instance_valid(viewport) and is_visible_in_tree() and get_window().visible:
 		viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
+func set_render_mode(mode: String) -> void:
+	render_mode = mode
+	if is_instance_valid(actor) and actor.has_method("set_render_mode"): actor.set_render_mode(mode)
+
 func set_growth(value: float) -> void:
 	_growth = value
 	if is_instance_valid(actor) and actor.has_method("set_growth"): actor.set_growth(value)
@@ -91,5 +96,6 @@ func _replace_actor() -> void:
 		_player.advance(0)
 	if actor.has_method("set_appearance"): actor.set_appearance(_style,_color)
 	if actor.has_method("set_growth"): actor.set_growth(_growth)
+	if actor.has_method("set_render_mode"): actor.set_render_mode(render_mode)
 	_center_actor()
 	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

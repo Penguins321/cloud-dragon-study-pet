@@ -1,12 +1,66 @@
-extends "res://pet/effects/goal_breath.gd"
+extends Node2D
 
-# Share real goal text/layout with the old effect, but no vapor or noise shader.
+# Pure presentation: main supplies the current task. This effect does not edit plans.
+var goal_label := Label.new()
+var caption := Label.new()
+var goal_rect := Rect2()
+var origin := Vector2.ZERO
+var display_scale := 1.0
+var elapsed := 0.0
+var _glow := GradientTexture2D.new()
+
 func _ready() -> void:
-	super._ready()
-	material = null
+	visible = false
+	z_index = 10
+	_glow.width = 128
+	_glow.height = 128
+	_glow.fill = GradientTexture2D.FILL_RADIAL
+	_glow.fill_from = Vector2(0.5,0.5)
+	_glow.fill_to = Vector2(1.0,0.5)
+	_glow.gradient = Gradient.new()
+	_glow.gradient.offsets = PackedFloat32Array([0.0,0.55,1.0])
+	_glow.gradient.colors = PackedColorArray([Color(1,1,1,0.95),Color(1,1,1,0.55),Color(1,1,1,0)])
 	for label in [caption,goal_label]:
+		label.theme = preload("res://ui/study_theme.tres")
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.add_theme_color_override("font_color",Color("375b55"))
 		label.add_theme_color_override("font_outline_color",Color(1,0.99,0.9,0.6))
+		label.add_theme_constant_override("outline_size",1)
+		add_child(label)
+	caption.text = "今日目标"
+	goal_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	goal_label.max_lines_visible = 2
+	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	goal_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+func set_frame(anchor: Vector2, size: float, time: float, title: String) -> void:
+	visible = true
+	origin = anchor
+	display_scale = size
+	elapsed = time
+	var center := anchor + Vector2(-110,-110)*size
+	goal_rect = Rect2(center-Vector2(112,64)*size,Vector2(224,128)*size)
+	var padding := maxf(6.0,12.0*size)
+	var caption_size := maxi(11,roundi(14.0*size))
+	caption.add_theme_font_size_override("font_size",caption_size)
+	caption.position = (goal_rect.position+Vector2(padding,padding)).floor()
+	caption.size = Vector2(goal_rect.size.x-padding*2,caption_size+5)
+	goal_label.add_theme_font_size_override("font_size",maxi(14,roundi(18.0*size)))
+	goal_label.position = caption.position+Vector2(0,caption_size+5)
+	goal_label.size = Vector2(goal_rect.size.x-padding*2,goal_rect.size.y-padding*2-caption_size-5)
+	goal_label.text = title
+	var text_alpha := smoothstep(1.0,1.25,time)*(1.0-smoothstep(5.1,5.6,time))
+	for label in [caption,goal_label]:
+		label.visible = text_alpha > 0.001
+		label.modulate.a = text_alpha
+	queue_redraw()
+
+func stage() -> int:
+	if elapsed < 0.35: return 0
+	if elapsed < 0.75: return 1
+	if elapsed < 5.1: return 2
+	return 3
 
 func _sheet_alpha() -> float:
 	return smoothstep(0.62,1.05,elapsed)*(1.0-smoothstep(5.1,5.6,elapsed))
@@ -53,7 +107,7 @@ func _draw() -> void:
 			if elapsed > 5.0: t = 1.0-t
 			var point := _curve(t*reveal)
 			var amount := sin(t*PI)*flow
-			draw_texture_rect(_mist,Rect2(point-Vector2.ONE*7*size,Vector2.ONE*14*size),false,Color(1,0.87,0.48,amount*0.38))
+			draw_texture_rect(_glow,Rect2(point-Vector2.ONE*7*size,Vector2.ONE*14*size),false,Color(1,0.87,0.48,amount*0.38))
 			draw_circle(point,1.1*size,Color(1,0.97,0.78,amount))
 	if alpha <= 0.001: return
 	var open := smoothstep(0.62,1.05,elapsed)

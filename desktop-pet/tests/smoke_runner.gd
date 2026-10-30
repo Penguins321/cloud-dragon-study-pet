@@ -196,7 +196,6 @@ static func _rendered_pixels_inside_region(window: Window) -> bool:
 	return true
 
 static func _native_region_covers_artwork(app: Node) -> bool:
-	var membership = load("res://tests/test_coverage.gd")
 	if app.pet.skin.render_texture == null:
 		# Procedural energy-core artwork has no source bitmap. Independently
 		# check every current render contour against the native region; actual
@@ -207,7 +206,7 @@ static func _native_region_covers_artwork(app: Node) -> bool:
 			var native: PackedVector2Array = app.get_window().mouse_passthrough_polygon
 			for polygon in app.pet.get_visual_geometry().render_polygons:
 				for point in polygon:
-					if not membership._inside_outline(app.pet.position+point, native): return false
+					if not _inside_outline(app.pet.position+point, native): return false
 		app.pet.set_display_scale(1.0)
 		return true
 	var image: Image = app.pet.skin.render_texture.get_image()
@@ -232,7 +231,7 @@ static func _native_region_covers_artwork(app: Node) -> bool:
 							continue
 						var local: Vector2 = app.pet.skin.render_rect.position + (Vector2(x, y) + Vector2(0.5, 0.5)) * factor
 						var window_point: Vector2 = app.pet.position + app.pet.map_skin_point(local)
-						if not membership._inside_outline(window_point, native) or not Rect2(Vector2.ZERO, app.get_window().size).has_point(window_point):
+						if not _inside_outline(window_point, native) or not Rect2(Vector2.ZERO, app.get_window().size).has_point(window_point):
 							printerr("NATIVE SOURCE OUTSIDE ",size," / ",action," frame ",frame," source ",Vector2i(x,y)," window ",window_point," window size ",app.get_window().size)
 							return false
 	app.pet.set_display_scale(1.0)
@@ -250,3 +249,16 @@ static func _capture(tree: SceneTree, window: Window, title: String) -> void:
 	var error := image.save_png(directory.path_join(title + ".png"))
 	if error != OK:
 		printerr("Screenshot save failed: ", error)
+
+static func _inside_outline(point: Vector2, outline: PackedVector2Array) -> bool:
+	var inside := false
+	var previous := outline.size() - 1
+	for index in outline.size():
+		var a := outline[index]
+		var b := outline[previous]
+		if (a.y > point.y) != (b.y > point.y):
+			var crossing := (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x
+			if point.x < crossing:
+				inside = not inside
+		previous = index
+	return inside

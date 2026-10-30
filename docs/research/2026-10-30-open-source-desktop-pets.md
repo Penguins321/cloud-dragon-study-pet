@@ -70,7 +70,7 @@
 
 ## 6. 证据来源
 
-下列源文件均在 2026-10-30 通过 GitHub 连接器读取；`blob/<SHA>` 固定源码，release 链接固定发行标签。搜索仅帮助发现项目与变化，本文未把第三方聚合页作为事实依据。既有 [项目参考](desktop-pet-projects.md) 与 [10-26 dsh 对比](dsh-pet-comparison-2026-10-26.md) 仅用于确定复核项，发生变化时以上述新快照为准。
+下列源文件均在 2026-10-30 通过 GitHub 连接器读取；`blob/<SHA>` 固定源码，release 链接固定发行标签。搜索仅帮助发现项目与变化，本文未把第三方聚合页作为事实依据。既有 项目参考（旧形象资料已移除） 与 10-26 dsh 对比（旧形象资料已移除） 仅用于确定复核项，发生变化时以上述新快照为准。
 
 [B0]: https://github.com/ayangweb/BongoCat
 [BH]: https://github.com/ayangweb/BongoCat/commit/47a73ed1765b13fdd674ec356d51b5b16a6b5a5b

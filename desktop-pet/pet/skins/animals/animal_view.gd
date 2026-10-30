@@ -17,6 +17,7 @@ var _capturing := false
 var _focus := false
 var _attention := Vector2.ZERO
 var _base_rotation := -0.42
+var _look_strength := 0.5
 const ORIGIN := Vector2(60,-40)
 const NATIVE_CYCLE := 29.0/24.0
 const LENGTHS := {"idle":NATIVE_CYCLE*4,"walk":NATIVE_CYCLE*4,"look":NATIVE_CYCLE*3,"curious":NATIVE_CYCLE*3,"jump":NATIVE_CYCLE*2,"celebrate":NATIVE_CYCLE*3,"rest":NATIVE_CYCLE*4,"breath":NATIVE_CYCLE*4,"bow":NATIVE_CYCLE*3,"spin":NATIVE_CYCLE*4,"dance":NATIVE_CYCLE*4,"dragging":NATIVE_CYCLE*2}
@@ -149,7 +150,7 @@ func advance_pose(delta: float) -> void:
 			offset.x = sin(TAU*t)*0.24*envelope
 			rotation.y += sin(TAU*t)*0.16*envelope
 		"look", "curious":
-			rotation.y += sin(TAU*t)*0.5*envelope
+			rotation.y += sin(TAU*t)*_look_strength*envelope
 			rotation.z = sin(PI*t)*0.07*envelope
 		"jump":
 			offset.y += -0.07*sin(PI*minf(t/0.2,1.0)) if t<0.2 else sin(PI*clampf((t-0.2)/0.65,0.0,1.0))*0.55

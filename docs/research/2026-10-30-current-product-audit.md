@@ -104,7 +104,7 @@ Windows/macOS 启动项已有分平台类；图标感知已有 freshness/失效�
 1. **手动推进**：完成当前不自动切下一项，计时结束不自动完成；末项不循环；重复点击完成不重复副作用。已有契约：[test_study.gd:11](../../desktop-pet/tests/test_study.gd#L11)、[test_ui.gd:17](../../desktop-pet/tests/test_ui.gd#L17)。
 2. **失败不丢原状态**：保存失败不切内存状态；坏主文件可回退有效备份；主备均坏不重置；未知格式拒绝并保留原文件。已有契约：[test_study.gd:37](../../desktop-pet/tests/test_study.gd#L37)。新存储功能须增加故障注入与恢复取消路径。
 3. **无惩罚的成长**：隐藏、离线、挂起不增长也不扣减；非法数值不污染累计；超过 40 小时外观进度保持上限，累计仍可增加。已有契约：[test_companionship.gd:10](../../desktop-pet/tests/test_companionship.gd#L10)、[check_growth_persistence.gd:29](../../desktop-pet/tests/check_growth_persistence.gd#L29)。
-4. **桌面可操作**：透明空隙穿透；晶体/光笺显示完整且可点击；拖动不误触动作；全动作/缩放/屏幕工作区不截断；右键只开一次，菜单期间冻结移动输入区域。已有契约：[run_tests.gd:17](../../desktop-pet/tests/run_tests.gd#L17)、[test_context_menu.gd:20](../../desktop-pet/tests/test_context_menu.gd#L20)、[test_coverage.gd:31](../../desktop-pet/tests/test_coverage.gd#L31)。
+4. **桌面可操作**：透明空隙穿透；晶体/光笺显示完整且可点击；拖动不误触动作；全动作/缩放/屏幕工作区不截断；右键只开一次，菜单期间冻结移动输入区域。已有契约：[run_tests.gd:17](../../desktop-pet/tests/run_tests.gd#L17)、[test_context_menu.gd:20](../../desktop-pet/tests/test_context_menu.gd#L20)、test_coverage.gd:31（旧形象资料已移除）。
 5. **恢复与退出入口**：托盘可恢复；无托盘时隐藏不能使唯一入口消失；系统关闭是真退出，不遗留图标子进程；保持启动项明确选择。已有实现：[pet_window.gd:137](../../desktop-pet/desktop/pet_window.gd#L137)、[icon_awareness.gd:159](../../desktop-pet/desktop/icon_awareness.gd#L159)。
 6. **表现一致性**：保持温玉灵核与三块刚性晶体的身份；2D/3D 动作一致、几何覆盖与显示比例不因节能开关失配；失败回退可理解。不能用新增日程功能退回旧角色外观。
 7. **隐藏确实停工作**：设置预览隐藏后不推进相位/不渲染；隐藏宠物停动画和图标读取；新增 scheduler、提醒、特效不能绕过静默策略。已有契约：[test_appearance_settings.gd:65](../../desktop-pet/tests/test_appearance_settings.gd#L65)。

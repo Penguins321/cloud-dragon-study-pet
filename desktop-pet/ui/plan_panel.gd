@@ -149,6 +149,7 @@ func _ready() -> void:
 	_confirm.cancel_button_text = "取消"
 	_confirm.theme = theme.duplicate(true)
 	add_child(_confirm)
+	preload("res://ui/window_chrome.gd").install(_confirm)
 	_confirm.confirmed.connect(_submit_replace)
 	_details_dialog.title = "修订当前内容 · 保留进度"
 	_details_dialog.ok_button_text = "保存修订"
@@ -156,6 +157,7 @@ func _ready() -> void:
 	_details_dialog.dialog_hide_on_ok = false
 	_details_dialog.theme = theme.duplicate(true)
 	add_child(_details_dialog)
+	preload("res://ui/window_chrome.gd").install(_details_dialog)
 	var details := VBoxContainer.new()
 	_details_dialog.add_child(details)
 	_caption(details,"近期目标")

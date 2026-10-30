@@ -311,7 +311,13 @@ func _make_window(title: String, content: Control, size: Vector2i) -> Window:
 	window.theme = ThemeResource
 	add_child(window)
 	window.add_child(content)
+	preload("res://ui/window_chrome.gd").install(window)
 	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_top = preload("res://ui/window_chrome.gd").HEIGHT
+	var surface: StyleBoxFlat = ThemeResource.get_stylebox("panel","PanelContainer").duplicate()
+	surface.corner_radius_top_left = 0
+	surface.corner_radius_top_right = 0
+	content.add_theme_stylebox_override("panel",surface)
 	window.close_requested.connect(window.hide)
 	window.window_input.connect(func(event: InputEvent):
 		if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -451,7 +457,7 @@ func _set_scale(value: float) -> void:
 func _apply_renderer_mode(mode: String) -> void:
 	renderer_mode = "3d" if mode == "3d" else "2d"
 	if pet.actor.has_method("set_render_mode"): pet.actor.set_render_mode(renderer_mode)
-	if settings.appearance_preview.actor.has_method("set_render_mode"): settings.appearance_preview.actor.set_render_mode(renderer_mode)
+	settings.appearance_preview.set_render_mode(renderer_mode)
 	settings.set_renderer_mode(renderer_mode)
 
 func _bind_renderer_signal() -> void:
@@ -500,6 +506,9 @@ func _apply_font_level(value: Variant) -> void:
 	settings.set_font_level(font_level)
 	panel.set_font_level(font_level)
 	desktop.set_font_level(font_level)
+	for window in [panel_window,settings_window]:
+		var chrome: Node = window.find_child("WindowChrome",true,false)
+		if chrome != null: preload("res://ui/font_scale.gd").apply(chrome,font_level)
 	if is_instance_valid(data_dialog.confirmation):
 		preload("res://ui/font_scale.gd").apply(data_dialog.confirmation, font_level)
 	_fit_settings_font.call_deferred()
@@ -511,7 +520,7 @@ func _fit_settings_font() -> void:
 		settings_window.size.x = width
 	if settings_window.visible: _place_panel(settings_window)
 	var plan_minimum := panel.get_combined_minimum_size().ceil()
-	panel_window.min_size = Vector2i(maxi(360,int(plan_minimum.x)),maxi(420,int(plan_minimum.y)))
+	panel_window.min_size = Vector2i(maxi(360,int(plan_minimum.x)),maxi(420,int(plan_minimum.y)+preload("res://ui/window_chrome.gd").HEIGHT))
 	panel_window.size = panel_window.size.max(panel_window.min_size)
 	if panel_window.visible: _place_panel(panel_window)
 
