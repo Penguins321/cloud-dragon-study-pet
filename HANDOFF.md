@@ -33,7 +33,7 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 顶部栏统一为浅玉色；玉核 3D 环绕粒子和设置预览共用渲染。当前功能见根目录 README 与 desktop-pet/docs/release-v0.17.md。
 
-开发顺序：`./test-prototype.ps1`、`./build-prototype.ps1`，双击 `启动温玉灵核.cmd`。安装包按需执行 `./build-installer.ps1`；Mac 包按需执行 `python scripts/build-macos-friends.py`。过期导出文件已清除，不再保留多代 EXE 和 ZIP。
+开发顺序：`./test-prototype.ps1`、`./build-prototype.ps1`，Windows 双击 `启动温玉灵核.cmd`；Mac 安装 Godot 4.7.2 后双击 `启动温玉灵核.command`，自动导入资源并运行源码。安装包按需执行 `./build-installer.ps1`；Mac 包按需执行 `python scripts/build-macos-friends.py`。过期导出文件已清除，不再保留多代 EXE 和 ZIP。
 
 学习数据目录 `%APPDATA%\CloudDragonStudyPrototype`、测试环境变量 `CLOUD_DRAGON_*` 和远端仓库地址保留原名以保持兼容；这些技术标识不再关联任何旧形象。不要清理个人学习数据或把测试数据打包给朋友。
 

@@ -4,3 +4,4 @@
 *.gif binary
 *.exe binary
 *.sh text eol=lf
+*.command text eol=lf

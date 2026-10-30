@@ -16,6 +16,24 @@ Windows 上已有项目开发环境时运行 `python scripts/build-macos-friends
 
 登录启动使用当前用户 `~/Library/LaunchAgents/org.warmjade.studycompanion.plist`，仅在用户开启后写入，下次登录生效；再次打开移动后的应用会更新已有启动项。系统“登录项”中的禁用也会影响启动，本应用不覆盖系统选择。卸载前先在应用设置中关闭自启动；若应用已删除，只移除上述 plist 即可。学习数据保留。
 
+## 从源码双击启动
+
+1. 安装 Godot **4.7.2 标准版**，放到 `/Applications/Godot.app` 或 `~/Applications/Godot.app`。
+2. 克隆项目后，双击源码根目录的 `启动温玉灵核.command`。它会先增量导入模型、贴图等资源，再运行 `desktop-pet/project.godot`，无需先导出应用。
+3. 退出桌宠后，启动命令结束；缺少引擎、版本不符、导入或启动失败时，终端会显示原因，等待回车后关闭。
+
+脚本也支持 PATH 中的 `godot`／`godot4` 和常用 Homebrew 路径。自定义安装位置可在终端执行：
+
+```bash
+GODOT="/自定义目录/Godot.app" bash ./启动温玉灵核.command
+```
+
+`GODOT` 也可指向 `Godot.app/Contents/MacOS/Godot`。Finder 双击时通常不读取 shell 配置文件，建议采用上述标准安装位置。源码启动不需要导出模板、Xcode 或开发者证书；这些仅涉及构建／签名流程。
+
+启动文件在 Git 中保存可执行位和 LF 换行。若通过 ZIP 或其他方式复制后丢失权限，在项目目录执行一次 `chmod +x ./启动温玉灵核.command`，再双击。源码启动继续使用既有学习数据目录，不自动启用登录启动。
+
+启动器的路径、参数、版本及失败分支测试：`python3 scripts/test-macos-launcher.py`。脚本逻辑已可在 Bash 中模拟验证，Finder 双击和 Mac 实际图形表现仍需真机验收。
+
 ## 在 Mac 构建
 
 1. 安装 Godot **4.7.2 标准版**及完全相同版本的导出模板（编辑器 → 管理导出模板）。安装 Xcode Command Line Tools，供签名使用。

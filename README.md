@@ -67,7 +67,7 @@ Windows 直接打包朋友试用版：`python scripts/build-macos-friends.py`。
 ./desktop-pet/packaging/test-installer.ps1
 ```
 
-使用 Godot 4.7.2 标准版打开 `desktop-pet/project.godot`。本地开发可运行“启动温玉灵核.cmd”。本地引擎、编译器、下载包、导出程序及测试数据位于忽略目录，不纳入 Git。
+使用 Godot 4.7.2 标准版打开 `desktop-pet/project.godot`。Windows 本地开发可运行“启动温玉灵核.cmd”；Mac 安装 Godot 4.7.2 标准版后，可双击“启动温玉灵核.command”直接导入并运行源码，详见 [Mac 源码启动说明](desktop-pet/packaging/MACOS.md#从源码双击启动)。本地引擎、编译器、下载包、导出程序及测试数据位于忽略目录，不纳入 Git。
 
 - [项目操作与模块说明](desktop-pet/README.md)
 - [全部动作轨迹及水晶材质](desktop-pet/docs/jade-motion-v0.8.md)
