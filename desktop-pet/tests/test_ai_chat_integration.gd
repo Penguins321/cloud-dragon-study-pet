@@ -35,6 +35,21 @@ func run() -> void:
 	check(app.ai_memory_data.histories.warm_jade.size() == 2,"One successful exchange persists as a pair")
 	check(app.chat_panel.message_input.text.is_empty(),"Successful send clears only its matching draft")
 	check(not "chat-placeholder-not-real" in FileAccess.get_file_as_string(app.ai_memory_path),"API key never enters conversation file")
+	app.ai_brain.clock_msec = func(): return 100000000
+	app.chat_panel.message_input.text = "一次失败的追问"
+	app._send_ai_chat(app.chat_panel.message_input.text)
+	pending.back().call(HTTPRequest.RESULT_SUCCESS,429,PackedStringArray(),PackedByteArray())
+	check(app.chat_panel.message_input.text == "一次失败的追问" and app.ai_memory_data.histories.warm_jade.size() == 2,"Failed follow-up preserves draft without creating a partial exchange")
+	check("重试" in app.chat_panel.send_button.text and not app.chat_panel.send_button.disabled,"Failure offers explicit retry")
+	check("频繁" in app.chat_panel.status_label.text,"Root preserves useful provider error guidance")
+	app._send_ai_chat(app.chat_panel.message_input.text)
+	check(app.chat_panel.message_input.text == "一次失败的追问" and not app._ai_chat_pending,"Immediate throttled retry preserves draft and releases pending state")
+	app.ai_brain.clock_msec = func(): return 100003000
+	app.chat_panel.send_button.pressed.emit()
+	check(app._ai_chat_pending,"Retry after cooldown starts a new request")
+	app._cancel_ai_chat()
+	pending.back().call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),JSON.stringify(response).to_utf8_buffer())
+	check(app.ai_memory_data.histories.warm_jade.size() == 2 and app.chat_panel.message_input.text == "一次失败的追问","Cancel preserves draft and rejects late reply")
 	app._save_ai_persona("沉静、温柔，喜欢柔和的光。")
 	app._ai_chat_pending_text = "过期问题"
 	app._ai_chat_pending_role = "warm_jade"

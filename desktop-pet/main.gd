@@ -937,6 +937,7 @@ func _on_ai_failure(message: String) -> void:
 		_ai_chat_pending_role = ""
 		_refresh_ai_chat(false)
 		chat_panel.set_status(message + "；输入已保留，可稍后重试。")
+		chat_panel.set_retry(true)
 	_ai_testing = false
 	_ai_request_skin = ""
 	_ai_fallback = true
@@ -1009,7 +1010,7 @@ func _show_ai_chat() -> void:
 	chat_window.grab_focus()
 	chat_panel.message_input.grab_focus()
 	if str(ai_config.api_key).is_empty() or str(ai_config.model).is_empty():
-		chat_panel.set_status("先在设置 → 陪伴中填写服务商、模型和 API Key；聊天不要求开启自主陪伴。")
+		chat_panel.set_status("先在设置 → 陪伴中选择服务商和模型，并填写 API Key；聊天不要求开启自主陪伴。")
 
 func _send_ai_chat(text: String) -> void:
 	if text.strip_edges().is_empty() or text.length() > 1000 or _ai_chat_pending: return
@@ -1017,7 +1018,7 @@ func _send_ai_chat(text: String) -> void:
 		chat_panel.set_status("请勿在聊天中发送 API Key。")
 		return
 	if str(ai_config.api_key).is_empty() or str(ai_config.model).is_empty():
-		chat_panel.set_status("请先在设置 → 陪伴中填写服务商、模型和 API Key。")
+		chat_panel.set_status("请先在设置 → 陪伴中选择服务商和模型，并填写 API Key。")
 		return
 	_interrupt_ai()
 	_ai_chat_pending_text = text.strip_edges()
@@ -1037,6 +1038,7 @@ func _send_ai_chat(text: String) -> void:
 		_ai_chat_pending_role = ""
 		_refresh_ai_chat(false)
 		chat_panel.set_status("暂时无法发送，请检查配置并稍后再试。",ai_brain.busy)
+		chat_panel.set_retry(true)
 
 func _on_ai_chat_ready(reply: String, memories: Array[String]) -> void:
 	if not _ai_chat_pending or _ai_chat_pending_role != selected_skin or not chat_window.visible: return

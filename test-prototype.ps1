@@ -33,7 +33,7 @@ Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-persistence-test.log') --script res://tests/check_appearance_persistence.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-foreach ($check in @('test_ai_core','test_ai_memory','test_ai_settings','test_ai_chat_ui','test_ai_bubble','test_ai_integration','test_ai_chat_integration','test_ai_interaction','check_corgi_details','check_data_tools','check_companion_models','check_v016_ui','check_v016_integration','check_animal_skins','check_companion_ui','check_skin_integration','check_expressive_actions','check_social_interaction','check_expressive_integration')) {
+foreach ($check in @('test_ai_core','test_ai_models','test_ai_memory','test_ai_settings','test_ai_chat_ui','test_ai_bubble','test_ai_integration','test_ai_chat_integration','test_ai_interaction','check_corgi_details','check_data_tools','check_companion_models','check_v016_ui','check_v016_integration','check_animal_skins','check_companion_ui','check_skin_integration','check_expressive_actions','check_social_interaction','check_expressive_integration')) {
     $env:CLOUD_DRAGON_DATA_DIR = Join-Path $PSScriptRoot ('.tools/v016-' + $check + '-' + [guid]::NewGuid().ToString('N'))
     Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script ('res://tests/' + $check + '.gd')
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

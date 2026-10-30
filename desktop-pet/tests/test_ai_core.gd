@@ -34,7 +34,7 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	DirAccess.remove_absolute(path)
 	var cfg: Dictionary = store.defaults()
-	check(cfg == {"enabled":false,"provider":"deepseek","model":"","api_key":"","bubbles":true}, "safe defaults")
+	check(cfg == {"enabled":false,"provider":"deepseek","model":"deepseek-flash","api_key":"","bubbles":true}, "safe defaults with ready DeepSeek model")
 	check(store.load_config(path).config == cfg, "missing config loads defaults")
 	cfg.merge({"enabled":true,"model":"my-model","api_key":"fake-secret-test-key"},true)
 	check(store.save_config(path,cfg) == OK, "save private config")
@@ -105,6 +105,16 @@ func run() -> void:
 	brain.request_decision({},actions,true)
 	completion.call(HTTPRequest.RESULT_SUCCESS,401,PackedStringArray(),cfg.api_key.to_utf8_buffer())
 	check(not cfg.api_key in JSON.stringify(errors),"provider error body never leaks key")
+	check("密钥" in errors.back(),"Authentication error explains how to fix credentials")
+	for item in [[402,"余额"],[429,"频繁"],[400,"模型"],[503,"繁忙"]]:
+		now += 10000
+		brain.request_decision({},actions,true)
+		completion.call(HTTPRequest.RESULT_SUCCESS,item[0],PackedStringArray(),cfg.api_key.to_utf8_buffer())
+		check(item[1] in errors.back() and not cfg.api_key in errors.back(),"HTTP error offers actionable safe reason")
+	now += 10000
+	brain.request_decision({},actions,true)
+	completion.call(HTTPRequest.RESULT_TIMEOUT,0,PackedStringArray(),PackedByteArray())
+	check("超时" in errors.back(),"Timeout can be distinguished from invalid configuration")
 	now += 10000
 	brain.request_decision({},actions,true)
 	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response("look",cfg.api_key))
@@ -159,7 +169,14 @@ func test_chat(brain: Node, config: Dictionary, actions: Array[StringName]) -> v
 	check(sent.body.messages.size() <= 14,"chat history bounded")
 	for message in sent.body.messages:
 		if message.role in ["user","assistant"]:
-			check(message.content.length() <= 1000,"each history message bounded")
+			if message.role == "assistant":
+				var parsed := JSON.new()
+				var parsed_ok := parsed.parse(message.content) == OK and parsed.data is Dictionary
+				check(parsed_ok,"Assistant history preserves JSON reply protocol across turns")
+				if parsed_ok:
+					check(parsed.data.get("reply","").length() <= 1000 and parsed.data.get("memories") == [],"Historical replies are bounded without re-extracting old memories")
+			else:
+				check(message.content.length() <= 1000,"each user history message bounded")
 	var metadata: Dictionary = JSON.parse_string(sent.body.messages[1].content)
 	check(metadata.persona.length() <= 600 and metadata.memories.size() <= 20 and metadata.memories[0].length() <= 160,"persona/memory context bounded")
 	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),chat_response("好的。",["我喜欢安静。","我喜欢吵闹。",42,"我喜欢安静。", "sk-example-secret"]))

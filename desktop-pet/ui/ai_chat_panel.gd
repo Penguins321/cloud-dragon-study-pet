@@ -28,6 +28,12 @@ var _preferences_snapshot := ""
 var _persona_snapshot := ""
 var _companion_name := ""
 var _persona_drafts: Dictionary = {}
+var _message_drafts: Dictionary = {}
+var waiting_label := Label.new()
+var count_label := Label.new()
+var _waiting_seconds := 0.0
+var _follow_latest := true
+var _scroll_restore := 0
 
 func _init() -> void:
 	# Wrapped labels briefly report tall minima before their width settles.
@@ -54,9 +60,23 @@ func _init() -> void:
 	history_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	history_box.add_theme_constant_override("separation",12)
 	history_scroll.add_child(history_box)
+	waiting_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	waiting_label.add_theme_font_size_override("font_size",12)
+	chat.add_child(waiting_label)
 	_editor(chat,message_input,"输入想说的话（最多 1000 字）",72)
-	_button(chat,send_button,"发送",_send)
-	_button(chat,cancel_button,"取消回复",func(): cancel_requested.emit())
+	message_input.gui_input.connect(_composer_input)
+	message_input.text_changed.connect(_draft_changed)
+	message_input.text_set.connect(_draft_changed)
+	count_label.add_theme_font_size_override("font_size",12)
+	count_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	chat.add_child(count_label)
+	_draft_changed()
+	var actions := HBoxContainer.new()
+	chat.add_child(actions)
+	send_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cancel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(actions,send_button,"发送",_send)
+	_button(actions,cancel_button,"停止",func(): cancel_requested.emit())
 	_scroll(memory_scroll)
 	memory_scroll.name = "记忆与性格"
 	category_tabs.add_child(memory_scroll)
@@ -110,20 +130,47 @@ func _button(parent: Node, button: Button, text: String, callback: Callable) -> 
 	parent.add_child(button)
 
 func set_conversation(messages: Array, companion_name: String) -> void:
+	var scroll := history_scroll.get_v_scroll_bar()
+	_scroll_restore = history_scroll.scroll_vertical
+	_follow_latest = companion_name != _companion_name or scroll.value + scroll.page >= scroll.max_value - 24
 	if companion_name != _companion_name:
 		_persona_drafts[_companion_name] = {"text":persona_input.text,"snapshot":_persona_snapshot}
+		_message_drafts[_companion_name] = message_input.text
+		# Preserve the first draft if the host first names the companion after input.
+		if not _companion_name.is_empty(): message_input.text = _message_drafts.get(companion_name,"")
 		_companion_name = companion_name
 		var draft: Dictionary = _persona_drafts.get(companion_name,{"text":"","snapshot":""})
 		persona_input.text = draft.text
 		_persona_snapshot = draft.snapshot
 	for child in history_box.get_children():
 		child.free()
+	if messages.is_empty():
+		_label(history_box,"我在这里，慢慢说。\n聊聊今天，或告诉我你喜欢怎样被陪伴。",14)
 	for entry in messages:
 		if not entry is Dictionary: continue
 		var role := str(entry.get("role",""))
 		if role not in ["user","assistant"]: continue
 		var speaker := "我" if role == "user" else companion_name
-		_label(history_box,speaker + "：\n" + str(entry.get("content","")),14)
+		var row := MarginContainer.new()
+		row.add_theme_constant_override("margin_left",28 if role == "user" else 0)
+		row.add_theme_constant_override("margin_right",0 if role == "user" else 28)
+		history_box.add_child(row)
+		var bubble := PanelContainer.new()
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("dce9d4") if role == "user" else Color("fffdf5")
+		style.set_corner_radius_all(12)
+		style.content_margin_left = 14
+		style.content_margin_right = 14
+		style.content_margin_top = 10
+		style.content_margin_bottom = 10
+		bubble.add_theme_stylebox_override("panel",style)
+		row.add_child(bubble)
+		var content := VBoxContainer.new()
+		content.add_theme_constant_override("separation",4)
+		bubble.add_child(content)
+		_label(content,speaker,12)
+		var text := _label(content,str(entry.get("content","")),14)
+		text.name = "MessageText"
 	FontScale.apply(history_box,_font_level)
 	_scroll_to_latest.call_deferred()
 
@@ -135,7 +182,8 @@ func _scroll_to_latest() -> void:
 
 func _scroll_after_layout() -> void:
 	if not is_inside_tree(): return
-	history_scroll.scroll_vertical = int(history_scroll.get_v_scroll_bar().max_value)
+	if _follow_latest: history_scroll.scroll_vertical = int(history_scroll.get_v_scroll_bar().max_value)
+	else: history_scroll.scroll_vertical = _scroll_restore
 
 func set_memories(preferences: Array[String], persona: String) -> void:
 	var preferences_clean := preferences_input.text == _preferences_snapshot
@@ -154,10 +202,33 @@ func accept_persona(value: String) -> void:
 	persona_input.text = value
 
 func set_status(message: String, busy: bool = false) -> void:
+	if busy and not _busy: _waiting_seconds = 0.0
 	_busy = busy
 	status_label.text = message
 	send_button.disabled = busy
 	cancel_button.disabled = not busy
+	cancel_button.visible = busy
+	waiting_label.visible = busy
+	set_process(busy)
+	if busy:
+		set_retry(false)
+		waiting_label.text = "伙伴正在回应…"
+
+func set_retry(retry: bool) -> void:
+	send_button.text = "重试发送" if retry else "发送"
+
+func _process(delta: float) -> void:
+	_waiting_seconds += delta
+	waiting_label.text = ("还在等待服务回应，可随时停止" if _waiting_seconds >= 12 else "伙伴正在回应") + "… %d 秒" % int(_waiting_seconds)
+
+func _draft_changed() -> void:
+	count_label.text = "%d / 1000 · %s+Enter 发送，Enter 换行" % [message_input.text.length(),"⌘" if OS.has_feature("macos") else "Ctrl"]
+	set_retry(false)
+
+func _composer_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_KP_ENTER] and (event.ctrl_pressed or event.meta_pressed):
+		message_input.accept_event()
+		_send()
 
 func set_font_level(level: int) -> void:
 	_font_level = FontScale.valid_level(level)

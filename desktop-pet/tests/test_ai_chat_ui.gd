@@ -53,9 +53,23 @@ func run() -> void:
 	panel.message_input.text = "  你好\n伙伴  "
 	panel.set_conversation([{"role":"user","content":"[b]你好[/b]"},{"role":"assistant","content":"<script>plain</script>"}],"小鸭")
 	check(panel.history_box.get_child_count() == 2,"Conversation renders both messages")
-	check(panel.history_box.get_child(0) is Label and panel.history_box.get_child(0).text.contains("[b]你好[/b]"),"Chat renders untrusted content as literal plain text")
-	check(panel.history_box.get_child(1).text.contains("小鸭") and panel.history_box.get_child(1).text.contains("<script>plain</script>"),"Reply identifies current companion and retains literal content")
+	var first = panel.history_box.get_child(0).find_child("MessageText",true,false)
+	var second = panel.history_box.get_child(1).find_child("MessageText",true,false)
+	check(first is Label and first.text.contains("[b]你好[/b]"),"Chat renders untrusted content as literal plain text inside a message bubble")
+	check(second is Label and second.text.contains("<script>plain</script>"),"Reply retains literal untrusted content")
 	check(panel.message_input.text == "  你好\n伙伴  ","Refreshing conversation preserves draft until root acknowledges success")
+	var long_history: Array = []
+	for index in 20:
+		long_history.append({"role":"user" if index % 2 == 0 else "assistant","content":"这是一段用于检查阅读位置的较长消息。".repeat(4)})
+	panel.set_conversation(long_history,"小鸭")
+	for frame in 5: await process_frame
+	panel.history_scroll.scroll_vertical = 150
+	var reading_position: int = panel.history_scroll.scroll_vertical
+	check(reading_position > 0,"Long history can scroll independently of composer")
+	long_history.append({"role":"assistant","content":"新的回复不会打断你阅读旧消息。"})
+	panel.set_conversation(long_history,"小鸭")
+	for frame in 5: await process_frame
+	check(absi(panel.history_scroll.scroll_vertical-reading_position) <= 1,"Incoming reply preserves position while reading earlier history")
 	var preferences: Array[String] = ["喜欢简短回复","称呼我为小林"]
 	panel.set_memories(preferences,"温和、安静")
 	check(panel.preferences_input.text == "喜欢简短回复\n称呼我为小林" and panel.persona_input.text == "温和、安静","Saved memories remain visible and editable")
@@ -96,7 +110,8 @@ func run() -> void:
 			check(panel.size.y <= 680,"Chat and memory fit bounded height at font level %d" % level)
 	check(panel.memory_scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED,"Memory tab uses vertical scrolling")
 	panel.set_conversation([{"role":"assistant","content":"更新后的回复"}],"小鸭")
-	check(panel.history_box.get_child(0).get_theme_font_size("font_size") == 24,"New replies retain selected largest font")
+	var newest = panel.history_box.get_child(0).find_child("MessageText",true,false)
+	check(newest != null and newest.get_theme_font_size("font_size") == 24,"New replies retain selected largest font")
 	panel.free()
 	var drafts = load("res://ui/ai_chat_panel.gd").new()
 	root.add_child(drafts)
@@ -106,6 +121,35 @@ func run() -> void:
 		quit(1)
 		return
 	drafts.set_conversation([],"小鸭")
+	drafts.message_input.text = "给小鸭的草稿"
+	drafts.set_conversation([],"柯基")
+	check(drafts.message_input.text.is_empty(),"New companion starts with its own composer draft")
+	drafts.message_input.text = "给柯基的草稿"
+	drafts.set_conversation([],"小鸭")
+	check(drafts.message_input.text == "给小鸭的草稿","Returning companion restores its draft")
+	check(drafts.count_label.text.begins_with("6 / 1000"),"Restored and programmatically set drafts refresh the character counter")
+	var keyboard_sent: Array[String] = []
+	drafts.send_requested.connect(func(value): keyboard_sent.append(value))
+	var enter := InputEventKey.new()
+	enter.pressed = true
+	enter.keycode = KEY_ENTER
+	drafts.message_input.gui_input.emit(enter)
+	check(keyboard_sent.is_empty(),"Plain Enter remains available for multiline and IME input")
+	enter.ctrl_pressed = true
+	drafts.message_input.gui_input.emit(enter)
+	check(keyboard_sent == ["给小鸭的草稿"],"Ctrl Enter submits current draft once")
+	enter.echo = true
+	drafts.message_input.gui_input.emit(enter)
+	check(keyboard_sent.size() == 1,"Holding shortcut never repeatedly submits")
+	enter.echo = false
+	enter.ctrl_pressed = false
+	enter.meta_pressed = true
+	drafts.message_input.gui_input.emit(enter)
+	check(keyboard_sent.size() == 2,"Cmd Enter is supported on Mac keyboards")
+	drafts.set_status("正在回复…",true)
+	drafts.message_input.gui_input.emit(enter)
+	check(keyboard_sent.size() == 2,"Shortcut respects in-flight request")
+	drafts.set_status("已取消")
 	var base: Array[String] = ["原偏好"]
 	drafts.set_memories(base,"鸭性格")
 	drafts.preferences_input.text = "未保存偏好"

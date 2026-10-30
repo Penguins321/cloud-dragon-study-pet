@@ -2,9 +2,9 @@
 
 ## 开始使用
 
-设置 → 陪伴 → AI 陪伴，选择 DeepSeek 或 OpenAI，填写账户可用的模型 ID 和 API Key，点击“保存并测试连接”。测试只发送最小角色状态，不发送已有对话或记忆。模型必须支持 Chat Completions 的 JSON 输出；模型名称自行按服务商账户填写。
+设置 → 陪伴 → AI 陪伴，选择 DeepSeek 或 OpenAI，填写 API Key，从下拉框选择模型，点击“保存并测试连接”。测试只发送最小角色状态，不发送已有对话或记忆。模型必须支持 Chat Completions 的 JSON 输出；DeepSeek 默认选中 `deepseek-flash`，另可选择 `deepseek-v4-pro`。点击“刷新可用模型”会向当前服务商官方 `/models` 接口查询，以返回的 `id` 而非展示名称作为请求模型。OpenAI 需填写自己的密钥并刷新；列表过滤已知非聊天模型，最终以连接测试为准。切换服务商会清空旧密钥，刷新失败保留当前选择。
 
-“启用自主 AI 陪伴”控制空闲时自动选择动作，不影响手动聊天。自主决策默认最多每 120 秒一次，连接测试至少间隔 10 秒，聊天至少间隔 2 秒；每次只保留一个请求，超时 10 秒，不自动连续重试。关闭、未配置或失败时可继续使用本地动作。未提供真实密钥时，开发验证使用模拟响应，不等于服务商实际连通性验收。
+“启用自主 AI 陪伴”控制空闲时自动选择动作，不影响手动聊天。自主决策默认最多每 120 秒一次，连接测试至少间隔 10 秒，聊天至少间隔 2 秒；每次只保留一个对话或决策请求；短动作超时 10 秒，聊天超时 45 秒，不自动连续重试。关闭、未配置或失败时可继续使用本地动作。2026-10-30 已通过 DeepSeek 官方模型列表、真实动作请求、多轮聊天与偏好上下文实测；OpenAI 使用模拟回归，未做真实账户测试。
 
 ## 新的桌面交互
 
@@ -13,6 +13,8 @@
 - 右键 → 和伙伴聊聊，也可打开聊天。双击保留致意；按住拖动。
 - 查看学习目标使用独立菜单，打开学习计划。“引光”改为短暂柔和光效，不再拉出文字卡片。
 - 专注、安静或减少动态时不主动发话，但仍可手动点击聊天。
+
+聊天支持 Ctrl+Enter（Mac 为 Cmd+Enter）发送，Enter 换行；等待时显示已耗时，可点击停止。失败会说明密钥、模型、额度、限流或网络问题，并保留输入用于重试。每个伙伴保留自己的窗口内草稿，切换回来继续编辑；未发送草稿不会写入磁盘。
 
 ![聊天窗口](screenshots/ai-companion/chat.png)
 
@@ -43,8 +45,12 @@ Git 忽略这两个文件及临时文件，Windows／Mac 的导出配置都明�
 
 ## 开发验证
 
-运行 `./test-prototype.ps1` 或 `bash test-macos.sh`。AI 专项为 test_ai_core、test_ai_memory、test_ai_settings、test_ai_chat_ui、test_ai_bubble、test_ai_integration、test_ai_chat_integration、test_ai_interaction。测试全部使用隔离目录和假密钥，不调用付费 API。
+运行 `./test-prototype.ps1` 或 `bash test-macos.sh`。AI 专项为 test_ai_core、test_ai_models、test_ai_memory、test_ai_settings、test_ai_chat_ui、test_ai_bubble、test_ai_integration、test_ai_chat_integration、test_ai_interaction。测试全部使用隔离目录和假密钥，不调用付费 API。
 
 `tests/preview_ai_companion.gd` 在真实图形后端生成界面预览。分发包验证同时检查三个伙伴可渲染、AI 私有文件未打包。Windows 验证不替代 Mac 真机验证。
 
 接口依据：[OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)、[DeepSeek Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/)。
+
+显式实测入口：`scripts/test-ai-live.gd`，要求 `AI_LIVE_CONFIG` 指向本机私有配置、`CLOUD_DRAGON_DATA_DIR` 指向独立测试目录。运行一次查询模型列表及三次真实生成请求，只发送专用测试语句，不加载用户原有对话；不纳入默认回归。
+
+模型列表依据：[DeepSeek Models](https://api-docs.deepseek.com/api/list-models/)、[OpenAI Models](https://developers.openai.com/api/reference/resources/models/methods/list)。

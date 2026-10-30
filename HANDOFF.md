@@ -27,7 +27,7 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 ## AI 陪伴与新交互
 
-DeepSeek／OpenAI 可选接入；轻点伙伴显示短句，点击进入聊天，学习目标走独立菜单。上下文、长期偏好和伙伴性格按本机私有记忆保存，密钥写入 ai_private.cfg；两种私有文件都禁止进入 Git 和导出包。实现与使用入口见 [AI 说明](desktop-pet/docs/ai-companion.md)。真实 API 需要用户自己的密钥验证，不从聊天获取或提交任何真实密钥。
+DeepSeek／OpenAI 可选接入；轻点伙伴显示短句，点击进入聊天，学习目标走独立菜单。上下文、长期偏好和伙伴性格按本机私有记忆保存，密钥写入 ai_private.cfg；两种私有文件都禁止进入 Git 和导出包。实现与使用入口见 [AI 说明](desktop-pet/docs/ai-companion.md)。2026-10-30 已用用户授权的本机密钥实测 DeepSeek 官方模型列表、动作决策、连续聊天和偏好追问。模型改为下拉框，支持从官方接口刷新；新电脑需自行配置密钥。绝不提交真实密钥。
 
 ## 当前项目
 

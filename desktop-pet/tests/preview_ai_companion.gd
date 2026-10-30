@@ -44,6 +44,10 @@ func run() -> void:
 	app.settings.category_tabs.current_tab = 1
 	await settle()
 	capture(app.settings_window,"settings")
+	var companion_scroll: ScrollContainer = app.settings.category_tabs.get_child(1)
+	companion_scroll.scroll_vertical += roundi(app.settings.ai_panel.model_input.global_position.y-companion_scroll.global_position.y-40)
+	await settle()
+	capture(app.settings_window,"models")
 	app.free()
 	await process_frame
 	print("AI COMPANION GPU PREVIEWS: captured invitation, chat, memory, fonts and settings")

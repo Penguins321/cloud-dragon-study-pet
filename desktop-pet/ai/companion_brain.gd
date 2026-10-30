@@ -67,7 +67,7 @@ func request_decision(context: Dictionary, actions: Array[StringName], manual: b
 		body["thinking"] = {"type":"disabled"}
 	var done := _finish.bind(generation,allowed,manual)
 	status_changed.emit("正在测试连接…" if manual else "AI 正在思考…")
-	return _send_request(body,done,generation)
+	return _send_request(body,done,generation,10.0)
 
 func request_chat(messages: Array, memories: Array[String], persona: String, companion: String) -> Error:
 	if busy:
@@ -82,6 +82,10 @@ func request_chat(messages: Array, memories: Array[String], persona: String, com
 		if message is Dictionary and message.get("role") in ["user","assistant"] and message.get("content") is String:
 			var content := _redact_key(message.content).left(1000)
 			if not content.strip_edges().is_empty():
+				# The wire history must teach the same JSON protocol as the next reply.
+				# Plain assistant history caused real DeepSeek follow-ups to return plain text.
+				if message.role == "assistant":
+					content = JSON.stringify({"reply":content,"memories":[]})
 				history.append({"role":message.role,"content":content})
 	if history.is_empty() or history.back().role != "user":
 		return ERR_INVALID_PARAMETER
@@ -101,9 +105,9 @@ func request_chat(messages: Array, memories: Array[String], persona: String, com
 	_generation += 1
 	busy = true
 	status_changed.emit("正在回复…")
-	return _send_request(body,_finish_chat.bind(_generation,latest_user),_generation)
+	return _send_request(body,_finish_chat.bind(_generation,latest_user),_generation,45.0)
 
-func _send_request(body: Dictionary, done: Callable, generation: int) -> Error:
+func _send_request(body: Dictionary, done: Callable, generation: int, timeout: float) -> Error:
 	var headers := PackedStringArray(["Content-Type: application/json","Authorization: Bearer " + _config.api_key])
 	var error: Error
 	if transport.is_valid():
@@ -111,10 +115,10 @@ func _send_request(body: Dictionary, done: Callable, generation: int) -> Error:
 	else:
 		if not is_instance_valid(_http):
 			_http = HTTPRequest.new()
-			_http.timeout = 10.0
 			_http.body_size_limit = BODY_LIMIT
 			_http.max_redirects = 0
 			add_child(_http)
+		_http.timeout = timeout
 		if _completion.is_valid() and _http.request_completed.is_connected(_completion):
 			_http.request_completed.disconnect(_completion)
 		_completion = done
@@ -191,7 +195,7 @@ func _finish_chat(result: int, code: int, _headers: PackedStringArray, bytes: Pa
 	if generation != _generation or not busy:
 		return
 	if result != HTTPRequest.RESULT_SUCCESS or code != 200 or bytes.size() > BODY_LIMIT:
-		_reject("AI 对话失败，请检查配置或网络")
+		_reject(_request_error(result,code))
 		return
 	var json := JSON.new()
 	if json.parse(bytes.get_string_from_utf8()) != OK or not json.data is Dictionary:
@@ -226,7 +230,7 @@ func _finish(result: int, code: int, _headers: PackedStringArray, bytes: PackedB
 	if generation != _generation or not busy:
 		return
 	if result != HTTPRequest.RESULT_SUCCESS or code != 200 or bytes.size() > BODY_LIMIT:
-		_reject("AI 请求失败，请检查配置或网络")
+		_reject(_request_error(result,code))
 		return
 	var json := JSON.new()
 	if json.parse(bytes.get_string_from_utf8()) != OK or not json.data is Dictionary:
@@ -275,6 +279,17 @@ func _safe_text(text: String, allow_newlines: bool = false) -> bool:
 	if allow_newlines and ("**" in text or "__" in text or "# " in text or "![" in text):
 		return false
 	return true
+
+func _request_error(result: int, code: int) -> String:
+	if result == HTTPRequest.RESULT_TIMEOUT: return "AI 回复超时，请稍后重试"
+	if result != HTTPRequest.RESULT_SUCCESS: return "无法连接 AI 服务，请检查网络后重试"
+	match code:
+		401, 403: return "API 密钥无效或无权限，请在设置中检查密钥"
+		402: return "AI 账户余额不足，请前往服务商充值"
+		400, 404, 422: return "模型不可用或请求不受支持，请刷新并重新选择模型"
+		429: return "请求过于频繁或额度已用完，请稍后重试并检查额度"
+		500, 502, 503, 504: return "AI 服务暂时繁忙，请稍后重试"
+	return "AI 请求失败，请稍后重试"
 
 func _reject(message: String) -> void:
 	busy = false

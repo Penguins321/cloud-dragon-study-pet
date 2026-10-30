@@ -2,7 +2,7 @@ extends RefCounted
 
 # Separate private file: never pass this dictionary to ordinary preferences/backups.
 static func defaults() -> Dictionary:
-	return {"enabled":false,"provider":"deepseek","model":"","api_key":"","bubbles":true}
+	return {"enabled":false,"provider":"deepseek","model":"deepseek-flash","api_key":"","bubbles":true}
 
 static func validate(config: Dictionary) -> bool:
 	for key in defaults():
