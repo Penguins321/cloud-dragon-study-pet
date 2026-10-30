@@ -34,8 +34,9 @@ static func validate(data: Dictionary) -> bool:
 			return false
 		for index in history.size():
 			var message = history[index]
-			if not message is Dictionary or message.size() != 2 or message.get("role") != ("user" if index % 2 == 0 else "assistant") or not _valid_text(message.get("content"), 1000):
+			if not message is Dictionary or message.size() not in [2,3] or message.get("role") != ("user" if index % 2 == 0 else "assistant") or not _valid_text(message.get("content"), 1000):
 				return false
+			if message.size() == 3 and (message.role != "user" or not _valid_text(message.get("question"),72)): return false
 	return true
 
 static func load_data(path: String) -> Dictionary:
@@ -86,9 +87,17 @@ static func recent_messages(data: Dictionary, companion: String) -> Array:
 	if not validate(data) or companion not in COMPANIONS:
 		return []
 	var history: Array = data.histories.get(companion, [])
-	return history.slice(maxi(0, history.size() - 12)).duplicate(true)
+	return expand_history(history.slice(maxi(0, history.size() - 12)))
 
-static func append_exchange(data: Dictionary, companion: String, user_text: String, reply: String, memories: Array[String]) -> Dictionary:
+static func expand_history(history: Array) -> Array:
+	var messages: Array = []
+	for entry in history:
+		if entry.get("question") is String:
+			messages.append({"role":"assistant","content":entry.question})
+		messages.append({"role":entry.role,"content":entry.content})
+	return messages
+
+static func append_exchange(data: Dictionary, companion: String, user_text: String, reply: String, memories: Array[String], question: String = "") -> Dictionary:
 	var result := data.duplicate(true)
 	if not validate(data) or companion not in COMPANIONS:
 		return result
@@ -97,7 +106,9 @@ static func append_exchange(data: Dictionary, companion: String, user_text: Stri
 	if not _valid_text(user_content, 1000) or not _valid_text(assistant_content, 1000):
 		return result
 	var history: Array = result.histories.get(companion, [])
-	history.append({"role":"user", "content":user_content})
+	var user_message := {"role":"user", "content":user_content}
+	if _valid_text(question,72): user_message["question"] = question
+	history.append(user_message)
 	history.append({"role":"assistant", "content":assistant_content})
 	result.histories[companion] = history.slice(maxi(0, history.size() - 40))
 	# Only caller-supplied explicit preferences enter memory; no transcript mining.

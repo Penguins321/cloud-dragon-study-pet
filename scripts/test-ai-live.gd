@@ -54,7 +54,7 @@ func run() -> void:
 		return
 	print("LIVE autonomous episode: OK; follow-ups=",result.plan.size())
 	result = {}
-	var messages: Array = [{"role":"user","content":"我喜欢简短的回复。请记住这个偏好，简单和我打个招呼。"}]
+	var messages: Array = [{"role":"user","content":"我喜欢简短的回复。请记住这个偏好，也请问我一个问题来了解我的兴趣。"}]
 	var preferences: Array[String] = []
 	var persona := "温柔、沉静的温玉灵核伙伴，简短自然地聊天。"
 	started = Time.get_ticks_msec()
@@ -62,6 +62,11 @@ func run() -> void:
 	await wait_result(request)
 	if not failure.is_empty(): return
 	print("LIVE chat: OK; reply_chars=",result.reply.length(),"; memories=",result.memories.size(),"; elapsed_ms=",Time.get_ticks_msec()-started)
+	if "？" not in result.reply and "?" not in result.reply:
+		printerr("LIVE companion did not ask the requested question.")
+		quit(1)
+		return
+	print("LIVE getting-to-know-you question: OK")
 	if result.memories.is_empty():
 		printerr("LIVE explicit preference was not extracted.")
 		quit(1)

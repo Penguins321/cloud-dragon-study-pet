@@ -31,6 +31,8 @@ var _ai_idle_elapsed := 0.0
 var _ai_event := ""
 var _ai_event_at := 0
 var _ai_recent_actions: Array[String] = []
+var _recent_utterances: Dictionary = {}
+var _pending_topics: Dictionary = {}
 var focus_session = preload("res://study/focus_session.gd").new()
 var scheduler = preload("res://pet/ambient_scheduler.gd").new()
 var screen_roaming = preload("res://pet/screen_roaming.gd").new()
@@ -907,7 +909,7 @@ func _ai_actions() -> Array[StringName]:
 	return actions
 
 func _ai_context() -> Dictionary:
-	return {"companion":selected_skin,"focus":focus_session.state == "running","idle_band":"long" if _ai_idle_elapsed >= 120.0 else "short","event":_ai_event if not _ai_event.is_empty() else "idle","recent_actions":_ai_recent_actions.duplicate(),"preferences":ai_memory_data.preferences.duplicate(),"persona":_ai_persona(),"mind":_mind().context()}
+	return {"companion":selected_skin,"focus":focus_session.state == "running","idle_band":"long" if _ai_idle_elapsed >= 120.0 else "short","event":_ai_event if not _ai_event.is_empty() else "idle","recent_actions":_ai_recent_actions.duplicate(),"preferences":ai_memory_data.preferences.duplicate(),"persona":_ai_persona(),"mind":_mind().context(),"recent_utterances":_recent_utterances.get(selected_skin,[])}
 
 func _tick_ai(delta: float, ready: bool) -> void:
 	if not _ai_context_allowed():
@@ -957,10 +959,16 @@ func _on_ai_decision(decision: Dictionary) -> void:
 	pet.play_action(action)
 	_ai_recent_actions.append(String(action))
 	if _ai_recent_actions.size() > 3: _ai_recent_actions.pop_front()
-	var text: String = str(decision.get("text","")).strip_edges().left(24)
+	var text: String = str(decision.get("text","")).strip_edges().left(72)
 	# A second key check prevents accidentally exposing credentials through a model echo.
 	if not str(ai_config.get("api_key","")).is_empty() and str(ai_config.api_key) in text: text = ""
 	if ai_config.get("bubbles",true) and not text.is_empty():
+		var recent: Array = _recent_utterances.get(selected_skin,[])
+		if text in recent: return
+		recent.append(text)
+		if recent.size() > 3: recent.pop_front()
+		_recent_utterances[selected_skin] = recent
+		_pending_topics[selected_skin] = text
 		_ai_manual_caption = false
 		ai_bubble.show_message(text,_ai_actor_rect(),desktop.usable_areas(),font_level,topmost_enabled)
 
@@ -1028,7 +1036,7 @@ func _ai_name() -> String:
 
 func _refresh_ai_chat(update_memories: bool = true) -> void:
 	if not is_instance_valid(chat_panel): return
-	chat_panel.set_conversation(ai_memory_data.histories.get(selected_skin,[]),_ai_name())
+	chat_panel.set_conversation(_conversation_with_topic(),_ai_name())
 	if update_memories:
 		var preferences: Array[String] = []
 		preferences.assign(ai_memory_data.preferences)
@@ -1047,6 +1055,12 @@ func _show_ai_chat() -> void:
 	if str(ai_config.api_key).is_empty() or str(ai_config.model).is_empty():
 		chat_panel.set_status("先在设置 → 陪伴中选择服务商和模型，并填写 API Key；聊天不要求开启自主陪伴。")
 
+func _conversation_with_topic() -> Array:
+	var messages: Array = AIMemory.expand_history(ai_memory_data.histories.get(selected_skin,[]))
+	if _pending_topics.has(selected_skin):
+		messages.append({"role":"assistant","content":_pending_topics[selected_skin]})
+	return messages
+
 func _send_ai_chat(text: String) -> void:
 	if text.strip_edges().is_empty() or text.length() > 1000 or _ai_chat_pending: return
 	if _ai_has_key(text):
@@ -1060,10 +1074,11 @@ func _send_ai_chat(text: String) -> void:
 	_ai_chat_pending_role = selected_skin
 	_ai_chat_pending = true
 	var messages: Array = AIMemory.recent_messages(ai_memory_data,selected_skin)
+	if _pending_topics.has(selected_skin): messages.append({"role":"assistant","content":_pending_topics[selected_skin]})
 	messages.append({"role":"user","content":_ai_chat_pending_text})
 	var preferences: Array[String] = []
 	preferences.assign(ai_memory_data.preferences)
-	var preview: Array = ai_memory_data.histories.get(selected_skin,[]).duplicate(true)
+	var preview: Array = _conversation_with_topic()
 	preview.append({"role":"user","content":_ai_chat_pending_text})
 	chat_panel.set_conversation(preview,_ai_name())
 	var error: Error = ai_brain.request_chat(messages,preferences,_ai_persona(),selected_skin)
@@ -1088,7 +1103,8 @@ func _on_ai_chat_ready(reply: String, memories: Array[String]) -> void:
 	var safe_memories: Array[String] = []
 	for value in memories:
 		if not _ai_has_key(value): safe_memories.append(value)
-	var candidate: Dictionary = AIMemory.append_exchange(ai_memory_data,selected_skin,user_text,reply,safe_memories)
+	var candidate: Dictionary = AIMemory.append_exchange(ai_memory_data,selected_skin,user_text,reply,safe_memories,str(_pending_topics.get(selected_skin,"")))
+	_pending_topics.erase(selected_skin)
 	var error := _persist_ai_memory(candidate)
 	_refresh_ai_chat()
 	if chat_panel.message_input.text.strip_edges() == user_text: chat_panel.message_input.clear()
@@ -1133,6 +1149,8 @@ func _save_ai_persona(value: String) -> void:
 
 func _clear_ai_chat_history() -> void:
 	_interrupt_ai()
+	_pending_topics.erase(selected_skin)
+	_recent_utterances.erase(selected_skin)
 	var error := _persist_ai_memory(AIMemory.clear_history(ai_memory_data,selected_skin))
 	_refresh_ai_chat()
 	chat_panel.set_status("当前伙伴的对话已清空；喜好与性格已保留。" if error == OK else "清空记录无法保存，请检查私有文件与目录权限。")

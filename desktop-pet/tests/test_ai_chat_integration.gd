@@ -25,14 +25,18 @@ func run() -> void:
 		bodies.append(body)
 		return OK
 	app._show_ai_chat()
+	app._pending_topics[app.selected_skin] = "你喜欢怎样的陪伴？"
 	app.chat_panel.message_input.text = "我喜欢安静，请记住。"
 	app._send_ai_chat(app.chat_panel.message_input.text)
 	check(app._ai_chat_pending and app.ai_brain.busy,"Chat request starts independently of auto toggle")
+	check("你喜欢怎样的陪伴？" in bodies.back(),"Answer includes the companion's preceding proactive question")
 	var response := {"choices":[{"finish_reason":"stop","message":{"content":JSON.stringify({"reply":"好，我会轻轻陪着你。","memories":["我喜欢安静"]})}}]}
 	pending[0].call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),JSON.stringify(response).to_utf8_buffer())
 	check(not app._ai_chat_pending and not app.ai_brain.busy,"Chat completes")
+	check(not app._pending_topics.has(app.selected_skin),"Successful answer consumes the pending topic")
 	check(app.ai_memory_data.preferences.has("我喜欢安静"),"Explicit preference becomes editable long-term memory")
 	check(app.ai_memory_data.histories.warm_jade.size() == 2,"One successful exchange persists as a pair")
+	check(app.ai_memory_data.histories.warm_jade[0].get("question","") == "你喜欢怎样的陪伴？","Proactive question remains attached to its answer in saved history")
 	check(app.chat_panel.message_input.text.is_empty(),"Successful send clears only its matching draft")
 	check(not "chat-placeholder-not-real" in FileAccess.get_file_as_string(app.ai_memory_path),"API key never enters conversation file")
 	app.ai_brain.clock_msec = func(): return 100000000
@@ -67,10 +71,14 @@ func run() -> void:
 	app = load("res://main.tscn").instantiate()
 	root.add_child(app)
 	check(app.ai_memory_data.histories.warm_jade.size() == 2,"Conversation survives restart")
+	check("你喜欢怎样的陪伴？" in JSON.stringify(app.AIMemory.recent_messages(app.ai_memory_data,"warm_jade")),"Question context survives restart")
 	check(app.ai_memory_data.personas.warm_jade == "沉静、温柔，喜欢柔和的光。","Persona survives restart")
 	check(app.ai_memory_data.preferences.is_empty(),"Deleted preference stays deleted")
 	check(app.ai_config.api_key == "chat-placeholder-not-real","Private key still restores")
+	app._pending_topics[app.selected_skin] = "待回答的问题"
+	app._recent_utterances[app.selected_skin] = ["以前的问题"]
 	app._clear_ai_chat_history()
+	check(not app._pending_topics.has(app.selected_skin) and not app._recent_utterances.has(app.selected_skin),"Clear removes pending and recent proactive speech too")
 	check(not app.ai_memory_data.histories.has("warm_jade") and app.ai_memory_data.personas.has("warm_jade"),"Clearing dialogue preserves persona")
 	app.free()
 	print("AI CHAT INTEGRATION: ",failures," failures")

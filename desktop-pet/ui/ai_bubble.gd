@@ -37,7 +37,7 @@ func _ready() -> void:
 	add_child(_panel)
 	message_label.name = "Message"
 	message_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
-	message_label.max_lines_visible = 2
+	message_label.max_lines_visible = 4
 	message_label.clip_text = true
 	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	message_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -61,7 +61,7 @@ func show_message(text: String, anchor: Rect2i, usable_areas: Array[Rect2i], lev
 	var clean := ""
 	for character in text:
 		clean += character if character.unicode_at(0) >= 32 else " "
-	clean = clean.strip_edges().left(24)
+	clean = clean.strip_edges().left(72)
 	if clean.is_empty():
 		dismiss()
 		return
@@ -70,7 +70,7 @@ func show_message(text: String, anchor: Rect2i, usable_areas: Array[Rect2i], lev
 	_areas = usable_areas.duplicate()
 	always_on_top = on_top
 	set_font_level(level)
-	_remaining = LIFETIME
+	_remaining = clampf(clean.length()*0.22,LIFETIME,18.0)
 	show()
 	# Native creation may choose a default monitor; restore the supplied anchor.
 	_layout_bubble()
@@ -121,11 +121,12 @@ func _layout_bubble() -> void:
 	var widest := 1.0
 	for character in message_label.text:
 		widest = maxf(widest, font.get_string_size(character, HORIZONTAL_ALIGNMENT_LEFT, -1, pixels).x)
-	# Twelve maximum-width glyphs guarantee room for 24 characters in two lines.
+	# Eighteen glyphs per line leave room for a small conversational paragraph.
 	var natural_width := font.get_string_size(message_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, pixels).x
-	var text_width := ceili(minf(natural_width, widest * 12.0)) + 2
+	var text_width := ceili(minf(natural_width, widest * 18.0)) + 2
 	var available_width := maxi(1, mini(text_width, area.size.x - PADDING * 2 - CLOSE_WIDTH))
-	var lines := clampi(ceili(natural_width / available_width), 1, 2)
+	var lines := maxi(1,ceili(natural_width / available_width))
+	message_label.max_lines_visible = maxi(4,lines)
 	var desired := Vector2i(text_width + PADDING * 2 + CLOSE_WIDTH, ceili(font.get_height(pixels) * lines) + (lines - 1) * 3 + PADDING * 2)
 	size = Vector2i(mini(desired.x, area.size.x), mini(desired.y, area.size.y))
 	_panel.position = Vector2.ZERO

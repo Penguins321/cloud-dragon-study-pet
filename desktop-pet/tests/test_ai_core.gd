@@ -67,7 +67,7 @@ func run() -> void:
 	check(brain.request_decision({"companion":"jade","event":"idle","idle_band":"short","focus":false,"recent_actions":["look"],"title":"PRIVATE-TASK"},actions) == OK,"auto accepted")
 	check(brain.busy and brain.next_allowed_msec == now+120000,"single flight and cooldown begin at request")
 	check(sent.url == "https://api.deepseek.com/chat/completions","fixed DeepSeek endpoint")
-	check(sent.body.max_tokens == 256 and sent.body.thinking.type == "disabled","DeepSeek token/thinking controls")
+	check(sent.body.max_tokens == 512 and sent.body.thinking.type == "disabled","DeepSeek token/thinking controls")
 	var payload := JSON.stringify(sent.body)
 	check(not "PRIVATE-TASK" in payload and not "dragging" in payload,"context and actions whitelist")
 	check("json" in payload.to_lower() and sent.body.response_format.type == "json_object","JSON explicitly requested")
@@ -81,7 +81,7 @@ func run() -> void:
 	cfg.provider = "openai"
 	brain.configure(cfg)
 	check(brain.request_decision({},actions,true) == OK,"manual allowed disabled")
-	check(sent.url == "https://api.openai.com/v1/chat/completions" and sent.body.max_completion_tokens == 256 and not sent.body.has("max_tokens"),"OpenAI request settings")
+	check(sent.url == "https://api.openai.com/v1/chat/completions" and sent.body.max_completion_tokens == 512 and not sent.body.has("max_tokens"),"OpenAI request settings")
 	var stale := completion
 	brain.cancel()
 	stale.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response())
@@ -131,8 +131,8 @@ func run() -> void:
 	transport_error = OK
 	now += 120000
 	brain.request_decision({},actions)
-	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response("idle","好".repeat(30)))
-	check(decisions.back().text.length() == 24 and not decisions.back().test,"long safe speech truncated to 24 chars")
+	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response("idle","好".repeat(80)))
+	check(decisions.back().text.length() == 72 and not decisions.back().test,"long safe speech truncated to 72 chars")
 	now += 120000
 	brain.request_decision({},actions)
 	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response("idle",""))

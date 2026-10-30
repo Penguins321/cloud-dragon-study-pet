@@ -37,13 +37,13 @@ static func run(tree: SceneTree, check: Callable) -> void:
 	check.call(bubble.visible, "replacement restarts lifetime")
 	bubble.advance(1.1)
 	check.call(not bubble.visible and not bubble.is_processing(), "six seconds dismisses and stops processing")
-	var long_text := "一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十"
+	var long_text := "话".repeat(80)
 	var previous_width := 0
 	for level in range(4):
 		bubble.show_message(long_text, anchor, areas, level)
 		await tree.process_frame
-		check.call(bubble.message_label is Label and bubble.message_label.text.length() == 24, "plain label clamps message to 24 characters")
-		check.call(bubble.message_label.max_lines_visible == 2 and bubble.message_label.get_line_count() <= 2, "24 CJK characters fit two lines at font level %d" % level)
+		check.call(bubble.message_label is Label and bubble.message_label.text.length() == 72, "plain label clamps message to 72 characters")
+		check.call(bubble.message_label.max_lines_visible >= 4 and bubble.message_label.get_line_count() <= 4, "72 CJK characters fit four lines at font level %d" % level)
 		check.call(bubble.size.x >= previous_width, "larger font expands bubble width")
 		check.call(bubble.message_label.get_theme_font_size("font_size") == roundi(16 * preload("res://ui/font_scale.gd").FACTORS[level]), "bubble follows font scale")
 		previous_width = bubble.size.x
