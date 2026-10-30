@@ -1,5 +1,7 @@
 extends Node
 
+const AIMemory = preload("res://ai/memory_store.gd")
+const AIConfig = preload("res://ai/config_store.gd")
 const Plan = preload("res://study/study_plan.gd")
 const Store = preload("res://study/plan_store.gd")
 const ThemeResource = preload("res://ui/study_theme.tres")
@@ -8,6 +10,27 @@ const Appearance = preload("res://pet/appearance.gd")
 const SkinCatalog = preload("res://pet/skin_catalog.gd")
 const PreferencesStore = preload("res://study/preferences_store.gd")
 const PlanTransfer = preload("res://study/plan_transfer.gd")
+var ai_brain = preload("res://ai/companion_brain.gd").new()
+var ai_bubble = preload("res://ui/ai_bubble.gd").new()
+var ai_config: Dictionary = AIConfig.defaults()
+var ai_config_path := "user://ai_private.cfg"
+var ai_memory_path := "user://ai_memory.json"
+var ai_memory_data: Dictionary = AIMemory.defaults()
+var chat_panel: PanelContainer
+var chat_window: Window
+var _chat_clear_dialog := ConfirmationDialog.new()
+var _ai_memory_blocked := false
+var _ai_chat_pending := false
+var _ai_chat_pending_text := ""
+var _ai_chat_pending_role := ""
+var _ai_manual_caption := false
+var _ai_request_skin := ""
+var _ai_testing := false
+var _ai_fallback := false
+var _ai_idle_elapsed := 0.0
+var _ai_event := ""
+var _ai_event_at := 0
+var _ai_recent_actions: Array[String] = []
 var focus_session = preload("res://study/focus_session.gd").new()
 var scheduler = preload("res://pet/ambient_scheduler.gd").new()
 var social_interaction = preload("res://pet/social_interaction.gd").new()
@@ -65,6 +88,8 @@ func _ready() -> void:
 		DirAccess.make_dir_recursive_absolute(data_directory)
 		store = Store.new(data_directory.path_join("plan.json"))
 		preferences_path = data_directory.path_join("preferences.cfg")
+		ai_config_path = data_directory.path_join("ai_private.cfg")
+		ai_memory_path = data_directory.path_join("ai_memory.json")
 	Engine.max_fps = 60
 	OS.low_processor_usage_mode = false
 	OS.low_processor_usage_mode_sleep_usec = 16666
@@ -72,6 +97,16 @@ func _ready() -> void:
 	add_child(desktop)
 	add_child(breath_effect)
 	add_child(pet)
+	add_child(ai_brain)
+	add_child(ai_bubble)
+	ai_bubble.activated.connect(_show_ai_chat)
+	ai_brain.decision_ready.connect(_on_ai_decision)
+	ai_brain.failed.connect(_on_ai_failure)
+	ai_brain.chat_ready.connect(_on_ai_chat_ready)
+	ai_brain.status_changed.connect(func(message):
+		if is_instance_valid(settings): settings.ai_panel.set_status(message,ai_brain.busy)
+		if is_instance_valid(chat_panel) and _ai_chat_pending: chat_panel.set_status(message,ai_brain.busy)
+	)
 	add_child(icon_awareness)
 	pet.position = Vector2(16, 94)
 	pet.geometry_changed.connect(_update_geometry)
@@ -84,6 +119,29 @@ func _ready() -> void:
 	panel_window = _make_window("学习计划", panel, Vector2i(410, 610))
 	settings = preload("res://ui/settings_panel.tscn").instantiate()
 	settings_window = _make_window("设置", settings, Vector2i(480, 720))
+	settings.ai_panel.save_requested.connect(_save_ai_settings)
+	settings.ai_panel.test_requested.connect(_test_ai_connection)
+	settings.ai_panel.chat_requested.connect(_show_ai_chat)
+	chat_panel = preload("res://ui/ai_chat_panel.gd").new()
+	chat_window = _make_window("聊天与记忆",chat_panel,Vector2i(520,720))
+	chat_panel.send_requested.connect(_send_ai_chat)
+	chat_panel.cancel_requested.connect(_cancel_ai_chat)
+	chat_panel.preferences_requested.connect(_save_ai_preferences)
+	chat_panel.persona_requested.connect(_save_ai_persona)
+	chat_panel.clear_history_requested.connect(func(): _chat_clear_dialog.popup_centered(Vector2i(380,220)))
+	chat_panel.dismiss_requested.connect(chat_window.hide)
+	chat_window.visibility_changed.connect(func():
+		if not chat_window.visible and _ai_chat_pending: _interrupt_ai()
+	)
+	_chat_clear_dialog.title = "清空当前伙伴的对话"
+	_chat_clear_dialog.dialog_text = "清空当前伙伴的聊天记录？已保存的喜好和伙伴性格会保留。"
+	_chat_clear_dialog.dialog_autowrap = true
+	_chat_clear_dialog.ok_button_text = "清空对话"
+	_chat_clear_dialog.cancel_button_text = "取消"
+	_chat_clear_dialog.theme = ThemeResource.duplicate(true)
+	chat_window.add_child(_chat_clear_dialog)
+	preload("res://ui/window_chrome.gd").install(_chat_clear_dialog)
+	_chat_clear_dialog.confirmed.connect(_clear_ai_chat_history)
 	panel.complete_requested.connect(_complete)
 	panel.next_requested.connect(_next)
 	panel.content_replace_requested.connect(_replace)
@@ -121,11 +179,13 @@ func _ready() -> void:
 	desktop.pet_clicked.connect(_handle_pet_click)
 	desktop.affection_requested.connect(func(): _manual_social(&"nuzzle"))
 	desktop.edit_requested.connect(_show_plan)
-	desktop.goal_requested.connect(func(): pet.select_action(&"breath"))
+	desktop.goal_requested.connect(_show_plan)
+	desktop.chat_requested.connect(_show_ai_chat)
 	desktop.settings_requested.connect(_show_settings)
 	desktop.focus_requested.connect(_show_plan)
 	desktop.quit_requested.connect(_quit)
 	desktop.pet_visibility_changed.connect(func(active: bool):
+		_interrupt_ai()
 		pet.set_active(active)
 		icon_awareness.set_active(active and _ambient_enabled())
 		OS.low_processor_usage_mode = not active
@@ -134,8 +194,9 @@ func _ready() -> void:
 		if not active:
 			panel_window.hide()
 			settings_window.hide()
+			chat_window.hide()
 	)
-	desktop.drag_started.connect(func(): panel_window.hide(); settings_window.hide(); pet.play_action(&"dragging"))
+	desktop.drag_started.connect(func(): _interrupt_ai(); panel_window.hide(); settings_window.hide(); pet.play_action(&"dragging"))
 	desktop.drag_finished.connect(func(_position: Vector2i): pet.play_action(&"idle"); _save_preferences())
 	var preferences_result: Dictionary = PreferencesStore.load_config(preferences_path)
 	preferences = preferences_result.config
@@ -153,6 +214,8 @@ func _ready() -> void:
 	_preferences_ready = true
 	icon_awareness.set_enabled(OS.get_name() == "Windows" and bool(preferences.get_value("pet","icon_awareness",true)))
 	_apply_companion_options()
+	_load_ai_settings()
+	_load_ai_memory()
 	_last_growth_tick = Time.get_ticks_msec()
 	_last_session_tick = _last_growth_tick
 	_apply_growth()
@@ -207,7 +270,9 @@ func _process(delta: float) -> void:
 	if previous_visible != breath_effect.visible or (breath_effect.visible and previous_stage != breath_effect.stage()):
 		_update_geometry()
 	var allowed: bool = _ambient_enabled() and pet.is_active() and get_window().visible and get_window().mode != Window.MODE_MINIMIZED and not desktop.pointer_busy() and not panel_window.visible and not settings_window.visible and pet.current_action == &"idle"
-	var next_action: StringName = scheduler.step(_ambient_elapsed, allowed)
+	_tick_ai(_ambient_elapsed,allowed)
+	var local_allowed: bool = allowed and (not _ai_configured() or _ai_fallback) and not ai_brain.busy
+	var next_action: StringName = scheduler.step(_ambient_elapsed, local_allowed)
 	if next_action != &"":
 		if not pet.skin.action_map.has(next_action): next_action = &"curious"
 		pet.play_action(next_action)
@@ -243,6 +308,7 @@ func _complete() -> void:
 	candidate.data = plan.to_dict()
 	if candidate.mark_current_complete() == OK and _save_candidate(candidate):
 		pet.play_action(&"celebrate")
+		_queue_ai_event("task_completed")
 
 func _next() -> void:
 	var candidate = Plan.new()
@@ -337,21 +403,21 @@ func _toggle_plan() -> void:
 		_show_plan()
 
 func _handle_pet_click() -> void:
-	if breath_effect.contains_point(desktop.last_click_position):
-		_toggle_plan()
-	elif pet.skin.id == &"warm_jade" and desktop.last_click_double:
-		_manual_social(&"greet")
-	else:
-		if selected_skin != "warm_jade":
-			var now := Time.get_ticks_msec()
-			if now - _last_animal_click < 350:
-				_last_animal_click = -1000
-				pet.select_action(&"bow")
-				return
-			_last_animal_click = now
-		pet.cycle_action()
+	_interrupt_ai()
+	if desktop.last_click_double:
+		pet.select_action(&"greet" if selected_skin == "warm_jade" else &"bow")
+		return
+	pet.select_action(&"look")
+	if not ai_config.get("bubbles",true):
+		_show_ai_chat()
+		return
+	var greetings := {"warm_jade":"我在这里，点这句话聊聊。","corgi":"我来啦，想聊点什么？","duck":"有什么新鲜事？点这里聊聊。","jellyfish":"慢慢说，我听着呢。"}
+	_ai_manual_caption = true
+	ai_bubble.show_message(greetings.get(selected_skin,"点这里，和我聊聊。"),_ai_actor_rect(),desktop.usable_areas(),font_level,topmost_enabled)
 
 func _show_plan() -> void:
+	_interrupt_ai()
+	chat_window.hide()
 	desktop.show_pet()
 	settings_window.hide()
 	_place_panel(panel_window)
@@ -360,6 +426,8 @@ func _show_plan() -> void:
 	pet.play_action(&"curious")
 
 func _show_settings() -> void:
+	_interrupt_ai()
+	chat_window.hide()
 	_refresh_startup()
 	_refresh_icon_awareness()
 	_refresh_focus_ui()
@@ -435,6 +503,7 @@ func _social_allowed() -> bool:
 	return pet.skin != null and pet.skin.id == &"warm_jade" and _ambient_enabled() and pet.is_active() and get_window().visible and get_window().mode != Window.MODE_MINIMIZED and pet.current_action == &"idle" and not desktop.pointer_busy() and not panel_window.visible and not settings_window.visible
 
 func _manual_social(action: StringName) -> void:
+	_interrupt_ai()
 	if pet.skin != null and pet.skin.action_map.has(action):
 		pet.select_action(action)
 		social_interaction.reset()
@@ -474,6 +543,7 @@ func _recover_skin_renderer(message: String, source_id: int) -> void:
 	settings.set_renderer_mode(renderer_mode, message)
 
 func _apply_skin_id(value: Variant) -> void:
+	_interrupt_ai(true)
 	var next_id := SkinCatalog.skin_id(value)
 	if pet.skin == null or String(pet.skin.id) != next_id:
 		var error: Error = pet.apply_skin(SkinCatalog.load_skin(next_id))
@@ -482,6 +552,7 @@ func _apply_skin_id(value: Variant) -> void:
 			pet.apply_skin(DEFAULT_SKIN)
 		_bind_renderer_signal()
 	selected_skin = next_id
+	if is_instance_valid(chat_panel): _refresh_ai_chat()
 	_last_animal_click = -1000
 	_avoid_target = Vector2.INF
 	_icon_hover = 0.0
@@ -506,6 +577,10 @@ func _apply_font_level(value: Variant) -> void:
 	settings.set_font_level(font_level)
 	panel.set_font_level(font_level)
 	desktop.set_font_level(font_level)
+	ai_bubble.set_font_level(font_level)
+	if is_instance_valid(chat_panel):
+		chat_panel.set_font_level(font_level)
+		preload("res://ui/font_scale.gd").apply(chat_window,font_level)
 	for window in [panel_window,settings_window]:
 		var chrome: Node = window.find_child("WindowChrome",true,false)
 		if chrome != null: preload("res://ui/font_scale.gd").apply(chrome,font_level)
@@ -523,6 +598,10 @@ func _fit_settings_font() -> void:
 	panel_window.min_size = Vector2i(maxi(360,int(plan_minimum.x)),maxi(420,int(plan_minimum.y)+preload("res://ui/window_chrome.gd").HEIGHT))
 	panel_window.size = panel_window.size.max(panel_window.min_size)
 	if panel_window.visible: _place_panel(panel_window)
+	if is_instance_valid(chat_panel):
+		chat_window.min_size = Vector2i(maxi(360,ceili(chat_panel.get_combined_minimum_size().x)),maxi(420,ceili(chat_panel.get_combined_minimum_size().y)+preload("res://ui/window_chrome.gd").HEIGHT))
+		chat_window.size = chat_window.size.max(chat_window.min_size)
+		if chat_window.visible: _place_panel(chat_window)
 
 func _set_font_level(value: int) -> void:
 	_apply_font_level(value)
@@ -577,6 +656,7 @@ func _ambient_enabled() -> bool:
 	return companion_mode == "natural" and not reduced_motion and focus_session.state != "running"
 
 func _apply_companion_options() -> void:
+	_interrupt_ai()
 	pet.reduced_motion = reduced_motion
 	desktop.set_topmost(topmost_enabled)
 	Engine.max_fps = (30 if performance_mode == "eco" else 60) if pet.is_active() else 10
@@ -631,6 +711,7 @@ func _tick_companion() -> void:
 		_save_preferences()
 	elif _session_since_save >= 60.0:
 		_save_preferences()
+	if finished: _queue_ai_event("focus_finished")
 	if finished and pet.is_active() and companion_mode != "quiet" and not reduced_motion and not desktop.pointer_busy() and pet.current_action == &"idle":
 		pet.play_action(&"look")
 	var display_key := _focus_ui_key()
@@ -716,7 +797,7 @@ func _confirm_import() -> void:
 
 func _export_plan(kind: String, path: String) -> void:
 	var normalized := ProjectSettings.globalize_path(path).simplify_path().to_lower()
-	for protected_path in [store.path, preferences_path]:
+	for protected_path in [store.path, preferences_path, ai_config_path, ai_memory_path]:
 		for suffix in ["", ".bak", ".bak.tmp", ".tmp", ".before-import", ".before-import.tmp"]:
 			if normalized == ProjectSettings.globalize_path(protected_path+suffix).simplify_path().to_lower():
 				_data_notice("请选择其他文件名，不能覆盖正在使用的数据文件。", true)
@@ -731,8 +812,292 @@ func _data_notice(message: String, failed := false) -> void:
 	else: panel.show_notice(message)
 
 func _quit() -> void:
+	_interrupt_ai()
 	_save_preferences()
 	get_tree().quit()
 
 func _exit_tree() -> void:
+	ai_brain.cancel()
 	instance_guard.release()
+
+# AI decisions are optional; local actions and all user interactions remain usable offline.
+func _load_ai_settings() -> void:
+	var result: Dictionary = AIConfig.load_config(ai_config_path)
+	ai_config = result.config
+	ai_brain.configure(ai_config)
+	settings.ai_panel.set_config(ai_config)
+	if result.error not in [OK,ERR_FILE_NOT_FOUND]:
+		settings.ai_panel.set_status("AI 配置无法读取，原文件已保留；AI 暂未启用。")
+	elif _ai_configured():
+		settings.ai_panel.set_status("AI 陪伴已启用，空闲时最多每两分钟决策一次。")
+	else:
+		settings.ai_panel.set_status("AI 陪伴未启用，继续使用本地动作。")
+
+func _save_ai_settings(config: Dictionary) -> Error:
+	if not AIConfig.validate(config):
+		settings.ai_panel.set_status("请检查服务商、模型和密钥设置。")
+		return ERR_INVALID_DATA
+	var error: Error = AIConfig.save_config(ai_config_path,config)
+	if error != OK:
+		settings.ai_panel.set_status("AI 配置保存失败，请检查本机数据目录权限。")
+		return error
+	_interrupt_ai(true)
+	ai_config = config.duplicate(true)
+	ai_brain.configure(ai_config)
+	_ai_fallback = false
+	settings.ai_panel.set_config(ai_config)
+	settings.ai_panel.set_status("已保存到本机。" + ("空闲时启用 AI 陪伴。" if _ai_configured() else "继续使用本地动作。"))
+	return OK
+
+func _test_ai_connection(config: Dictionary) -> void:
+	if _save_ai_settings(config) != OK: return
+	_ai_testing = true
+	var actions: Array[StringName] = [&"idle"]
+	var context := {"companion":selected_skin,"event":"connection_test","focus":false,"idle_band":"short","recent_actions":[]}
+	var error: Error = ai_brain.request_decision(context,actions,true)
+	if error != OK:
+		_ai_testing = false
+		settings.ai_panel.set_status("暂时无法测试，请检查配置并稍后再试。",ai_brain.busy)
+
+func _ai_configured() -> bool:
+	return bool(ai_config.get("enabled",false)) and AIConfig.validate(ai_config) and not str(ai_config.get("model","")).is_empty() and not str(ai_config.get("api_key","")).is_empty()
+
+func _ai_surface_allowed() -> bool:
+	return pet.is_active() and get_window().visible and get_window().mode != Window.MODE_MINIMIZED and not desktop.pointer_busy() and not desktop.context_menu_active() and not panel_window.visible and not settings_window.visible and (not is_instance_valid(chat_window) or not chat_window.visible)
+
+func _ai_context_allowed() -> bool:
+	return _ambient_enabled() and _ai_surface_allowed()
+
+func _ai_actions() -> Array[StringName]:
+	var actions: Array[StringName] = []
+	for action in [&"idle",&"look",&"curious",&"rest",&"stretch",&"refract_turn",&"greet",&"nuzzle",&"doze",&"bow",&"celebrate",&"dance",&"walk"]:
+		if pet.skin != null and pet.skin.action_map.has(action): actions.append(action)
+	return actions
+
+func _ai_context() -> Dictionary:
+	return {"companion":selected_skin,"focus":focus_session.state == "running","idle_band":"long" if _ai_idle_elapsed >= 120.0 else "short","event":_ai_event if not _ai_event.is_empty() else "idle","recent_actions":_ai_recent_actions.duplicate(),"preferences":ai_memory_data.preferences.duplicate(),"persona":_ai_persona()}
+
+func _tick_ai(delta: float, ready: bool) -> void:
+	if not _ai_context_allowed():
+		if not _ai_manual_caption or not _ai_surface_allowed():
+			ai_bubble.dismiss()
+		elif ai_bubble.visible:
+			ai_bubble.update_anchor(_ai_actor_rect(),desktop.usable_areas())
+		if not _ai_testing and not _ai_chat_pending and ai_brain.busy:
+			ai_brain.cancel()
+			_ai_request_skin = ""
+		_ai_idle_elapsed = 0.0
+		return
+	if ai_bubble.visible: ai_bubble.update_anchor(_ai_actor_rect(),desktop.usable_areas())
+	if ai_brain.busy and not _ai_testing and not _ai_chat_pending and pet.current_action != &"idle":
+		ai_brain.cancel()
+		_ai_request_skin = ""
+	if not ready or not _ai_configured() or _ai_testing or _ai_chat_pending: return
+	if delta > 2.0 or delta < 0.0:
+		_interrupt_ai(true)
+		return
+	_ai_idle_elapsed += delta
+	if not _ai_event.is_empty() and Time.get_ticks_msec()-_ai_event_at > 60000: _ai_event = ""
+	if ai_brain.busy or (_ai_idle_elapsed < 120.0 and _ai_event.is_empty()): return
+	if Time.get_ticks_msec() < ai_brain.next_allowed_msec: return
+	_ai_request_skin = selected_skin
+	var error: Error = ai_brain.request_decision(_ai_context(),_ai_actions())
+	if error == OK:
+		_ai_idle_elapsed = 0.0
+		_ai_event = ""
+		_ai_fallback = false
+	elif error != ERR_BUSY:
+		_ai_fallback = true
+		_ai_idle_elapsed = 0.0
+
+func _on_ai_decision(decision: Dictionary) -> void:
+	if decision.get("test",false):
+		_ai_testing = false
+		settings.ai_panel.set_status("连接测试成功，模型已返回有效结果。")
+		return
+	var skin := _ai_request_skin
+	_ai_request_skin = ""
+	if not _ai_configured() or skin != selected_skin or not _ai_context_allowed() or pet.current_action != &"idle": return
+	var action := StringName(decision.get("action",&"idle"))
+	if not _ai_actions().has(action): return
+	pet.play_action(action)
+	_ai_recent_actions.append(String(action))
+	if _ai_recent_actions.size() > 3: _ai_recent_actions.pop_front()
+	var text: String = str(decision.get("text","")).strip_edges().left(24)
+	# A second key check prevents accidentally exposing credentials through a model echo.
+	if not str(ai_config.get("api_key","")).is_empty() and str(ai_config.api_key) in text: text = ""
+	if ai_config.get("bubbles",true) and not text.is_empty():
+		_ai_manual_caption = false
+		ai_bubble.show_message(text,_ai_actor_rect(),desktop.usable_areas(),font_level,topmost_enabled)
+
+func _on_ai_failure(message: String) -> void:
+	if _ai_chat_pending:
+		_ai_chat_pending = false
+		_ai_chat_pending_text = ""
+		_ai_chat_pending_role = ""
+		_refresh_ai_chat(false)
+		chat_panel.set_status(message + "；输入已保留，可稍后重试。")
+	_ai_testing = false
+	_ai_request_skin = ""
+	_ai_fallback = true
+	settings.ai_panel.set_status(message)
+
+func _interrupt_ai(clear_event: bool = false) -> void:
+	_ai_manual_caption = false
+	ai_brain.cancel()
+	if _ai_chat_pending:
+		_ai_chat_pending = false
+		_ai_chat_pending_text = ""
+		_ai_chat_pending_role = ""
+		if is_instance_valid(chat_panel):
+			_refresh_ai_chat(false)
+			chat_panel.set_status("已停止回复，输入已保留。")
+	ai_bubble.dismiss()
+	_ai_request_skin = ""
+	_ai_testing = false
+	_ai_idle_elapsed = 0.0
+	if clear_event:
+		_ai_event = ""
+		_ai_recent_actions.clear()
+
+func _queue_ai_event(event: String) -> void:
+	_ai_event = event
+	_ai_event_at = Time.get_ticks_msec()
+
+func _ai_actor_rect() -> Rect2i:
+	var points := PackedVector2Array()
+	var geometry: Dictionary = pet.get_visual_geometry()
+	for polygon in geometry.get("render_polygons",[]): points.append_array(polygon)
+	var bounds: Rect2 = geometry.get("bounds",Rect2(Vector2.ZERO,Vector2(100,100)))
+	if not points.is_empty():
+		bounds = Rect2(points[0],Vector2.ZERO)
+		for point in points: bounds = bounds.expand(point)
+	return Rect2i(Vector2i(Vector2(get_window().position)+pet.position+bounds.position),Vector2i(bounds.size.ceil()).max(Vector2i.ONE))
+
+func _load_ai_memory() -> void:
+	var result: Dictionary = AIMemory.load_data(ai_memory_path)
+	ai_memory_data = result.data
+	_ai_memory_blocked = result.error != OK
+	_refresh_ai_chat()
+	if _ai_memory_blocked:
+		chat_panel.set_status("记忆文件无法读取，原文件已保留；请先备份并移走原文件再保存新记忆。")
+
+func _ai_persona() -> String:
+	return ai_memory_data.personas.get(selected_skin,AIMemory.default_persona(selected_skin))
+
+func _ai_name() -> String:
+	for entry in SkinCatalog.entries():
+		if entry.id == selected_skin: return entry.name
+	return "伙伴"
+
+func _refresh_ai_chat(update_memories: bool = true) -> void:
+	if not is_instance_valid(chat_panel): return
+	chat_panel.set_conversation(ai_memory_data.histories.get(selected_skin,[]),_ai_name())
+	if update_memories:
+		var preferences: Array[String] = []
+		preferences.assign(ai_memory_data.preferences)
+		chat_panel.set_memories(preferences,_ai_persona())
+
+func _show_ai_chat() -> void:
+	_interrupt_ai()
+	desktop.show_pet()
+	panel_window.hide()
+	settings_window.hide()
+	_refresh_ai_chat()
+	_place_panel(chat_window)
+	chat_window.show()
+	chat_window.grab_focus()
+	chat_panel.message_input.grab_focus()
+	if str(ai_config.api_key).is_empty() or str(ai_config.model).is_empty():
+		chat_panel.set_status("先在设置 → 陪伴中填写服务商、模型和 API Key；聊天不要求开启自主陪伴。")
+
+func _send_ai_chat(text: String) -> void:
+	if text.strip_edges().is_empty() or text.length() > 1000 or _ai_chat_pending: return
+	if _ai_has_key(text):
+		chat_panel.set_status("请勿在聊天中发送 API Key。")
+		return
+	if str(ai_config.api_key).is_empty() or str(ai_config.model).is_empty():
+		chat_panel.set_status("请先在设置 → 陪伴中填写服务商、模型和 API Key。")
+		return
+	_interrupt_ai()
+	_ai_chat_pending_text = text.strip_edges()
+	_ai_chat_pending_role = selected_skin
+	_ai_chat_pending = true
+	var messages: Array = AIMemory.recent_messages(ai_memory_data,selected_skin)
+	messages.append({"role":"user","content":_ai_chat_pending_text})
+	var preferences: Array[String] = []
+	preferences.assign(ai_memory_data.preferences)
+	var preview: Array = ai_memory_data.histories.get(selected_skin,[]).duplicate(true)
+	preview.append({"role":"user","content":_ai_chat_pending_text})
+	chat_panel.set_conversation(preview,_ai_name())
+	var error: Error = ai_brain.request_chat(messages,preferences,_ai_persona(),selected_skin)
+	if error != OK and _ai_chat_pending:
+		_ai_chat_pending = false
+		_ai_chat_pending_text = ""
+		_ai_chat_pending_role = ""
+		_refresh_ai_chat(false)
+		chat_panel.set_status("暂时无法发送，请检查配置并稍后再试。",ai_brain.busy)
+
+func _on_ai_chat_ready(reply: String, memories: Array[String]) -> void:
+	if not _ai_chat_pending or _ai_chat_pending_role != selected_skin or not chat_window.visible: return
+	var user_text := _ai_chat_pending_text
+	_ai_chat_pending = false
+	_ai_chat_pending_text = ""
+	_ai_chat_pending_role = ""
+	if _ai_has_key(reply):
+		chat_panel.set_status("回复包含敏感配置，未显示或保存。")
+		return
+	var safe_memories: Array[String] = []
+	for value in memories:
+		if not _ai_has_key(value): safe_memories.append(value)
+	var candidate: Dictionary = AIMemory.append_exchange(ai_memory_data,selected_skin,user_text,reply,safe_memories)
+	var error := _persist_ai_memory(candidate)
+	_refresh_ai_chat()
+	if chat_panel.message_input.text.strip_edges() == user_text: chat_panel.message_input.clear()
+	chat_panel.set_status(("已回复；明确的喜好已记下，可在记忆页修改。" if not safe_memories.is_empty() else "已回复。") if error == OK else "已回复，但本机保存失败；本次记忆暂仅在运行期间保留。")
+
+func _cancel_ai_chat() -> void:
+	_interrupt_ai()
+
+func _persist_ai_memory(candidate: Dictionary) -> Error:
+	# Never overwrite an unreadable private file automatically.
+	if _ai_memory_blocked and FileAccess.file_exists(ai_memory_path):
+		ai_memory_data = candidate
+		return ERR_FILE_CORRUPT
+	var error: Error = AIMemory.save_data(ai_memory_path,candidate)
+	ai_memory_data = candidate
+	if error == OK: _ai_memory_blocked = false
+	return error
+
+func _save_ai_preferences(values: Array[String]) -> void:
+	for value in values:
+		if _ai_has_key(value):
+			chat_panel.set_status("请勿将 API Key 保存在喜好中。")
+			return
+	_interrupt_ai()
+	var error := _persist_ai_memory(AIMemory.set_preferences(ai_memory_data,values))
+	if error == OK:
+		var saved: Array[String] = []
+		saved.assign(ai_memory_data.preferences)
+		chat_panel.accept_preferences(saved)
+	_refresh_ai_chat()
+	chat_panel.set_status("长期喜好已更新；如需移除历史中的内容，请同时清空对话。" if error == OK else "记忆保存失败，请检查私有文件与目录权限。")
+
+func _save_ai_persona(value: String) -> void:
+	if _ai_has_key(value):
+		chat_panel.set_status("请勿将 API Key 保存在伙伴性格中。")
+		return
+	_interrupt_ai()
+	var error := _persist_ai_memory(AIMemory.set_persona(ai_memory_data,selected_skin,value))
+	if error == OK: chat_panel.accept_persona(_ai_persona())
+	_refresh_ai_chat()
+	chat_panel.set_status("伙伴性格已保存。" if error == OK else "伙伴性格保存失败，请检查私有文件与目录权限。")
+
+func _clear_ai_chat_history() -> void:
+	_interrupt_ai()
+	var error := _persist_ai_memory(AIMemory.clear_history(ai_memory_data,selected_skin))
+	_refresh_ai_chat()
+	chat_panel.set_status("当前伙伴的对话已清空；喜好与性格已保留。" if error == OK else "清空记录无法保存，请检查私有文件与目录权限。")
+
+func _ai_has_key(text: String) -> bool:
+	return not str(ai_config.get("api_key","")).is_empty() and str(ai_config.api_key) in text

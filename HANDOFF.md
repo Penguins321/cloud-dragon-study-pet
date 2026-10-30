@@ -25,6 +25,10 @@ powershell -ExecutionPolicy Bypass -File .\build-prototype.ps1
 
 手动 / 离线准备：从官方 `godotengine/godot-builds` 的 `4.7.2-stable` 发布下载 `Godot_v4.7.2-stable_win64.exe.zip`，**保留原 ZIP 并改名放到 `.tools/godot-4.7.2.zip`**；仅复制解压后的 EXE 不够。模板成员 `windows_debug_x86_64.exe` 放到 `.tools/templates/`。将这两份文件复制到新电脑后运行 `setup-dev.ps1`，脚本校验已有文件后解压导入，无需下载。若在线模板服务器不支持 HTTP Range，脚本会明确失败，不偷偷下载 1 GB 以上的完整包。
 
+## AI 陪伴与新交互
+
+DeepSeek／OpenAI 可选接入；轻点伙伴显示短句，点击进入聊天，学习目标走独立菜单。上下文、长期偏好和伙伴性格按本机私有记忆保存，密钥写入 ai_private.cfg；两种私有文件都禁止进入 Git 和导出包。实现与使用入口见 [AI 说明](desktop-pet/docs/ai-companion.md)。真实 API 需要用户自己的密钥验证，不从聊天获取或提交任何真实密钥。
+
 ## 当前项目
 
 当前版本 v0.17，仅支持温玉灵核、柯基、小鸭、水母。云龙与玉龙皮肤、骨架、动作、特效和专属验证资料已移除，不再恢复为运行形象。

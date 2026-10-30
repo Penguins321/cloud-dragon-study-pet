@@ -9,3 +9,9 @@ docs/superpowers/execution/*.log
 **/preferences.cfg
 **/plan.json
 **/plan.json.bak
+
+# Local AI credentials (never commit or distribute).
+**/ai_private.cfg
+**/ai_private.cfg.*
+**/ai_memory.json
+**/ai_memory.json.*

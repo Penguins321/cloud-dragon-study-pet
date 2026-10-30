@@ -6,6 +6,7 @@ signal drag_finished(position: Vector2i)
 signal pet_visibility_changed(is_visible: bool)
 signal edit_requested
 signal goal_requested
+signal chat_requested
 signal settings_requested
 signal focus_requested
 signal affection_requested
@@ -47,7 +48,8 @@ func _ready() -> void:
 	_menu = PopupMenu.new()
 	_menu.name = "PetContextMenu"
 	_menu.add_item("显示宠物", 0)
-	_menu.add_item("今日目标（引光）", 4)
+	_menu.add_item("查看学习目标…", 4)
+	_menu.add_item("和伙伴聊聊…", 7)
 	_menu.add_item("学习计划…", 1)
 	_menu.add_item("专注计时…", 6)
 	_menu.add_item("设置…", 5)
@@ -240,3 +242,6 @@ func _on_menu(id: int) -> void:
 		6:
 			show_pet()
 			focus_requested.emit()
+		7:
+			show_pet()
+			chat_requested.emit()

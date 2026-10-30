@@ -8,7 +8,7 @@ function Invoke-CheckedGodot {
     $lines = @(& $enginePath @args 2>&1)
     $engineExit = $LASTEXITCODE
     $lines | Write-Output
-    if ($engineExit -ne 0 -or ($lines -match 'SCRIPT ERROR:')) { exit 1 }
+    if ($engineExit -ne 0 -or ($lines -match 'SCRIPT ERROR:|ERROR: Resumed function|ERROR: Error calling deferred method')) { exit 1 }
 }
 Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script res://tests/check_spatial_actions.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -33,7 +33,7 @@ Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --log-file (Join-Path $PSScriptRoot '.tools/appearance-persistence-test.log') --script res://tests/check_appearance_persistence.gd
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-foreach ($check in @('check_corgi_details','check_data_tools','check_companion_models','check_v016_ui','check_v016_integration','check_animal_skins','check_companion_ui','check_skin_integration','check_expressive_actions','check_social_interaction','check_expressive_integration')) {
+foreach ($check in @('test_ai_core','test_ai_memory','test_ai_settings','test_ai_chat_ui','test_ai_bubble','test_ai_integration','test_ai_chat_integration','test_ai_interaction','check_corgi_details','check_data_tools','check_companion_models','check_v016_ui','check_v016_integration','check_animal_skins','check_companion_ui','check_skin_integration','check_expressive_actions','check_social_interaction','check_expressive_integration')) {
     $env:CLOUD_DRAGON_DATA_DIR = Join-Path $PSScriptRoot ('.tools/v016-' + $check + '-' + [guid]::NewGuid().ToString('N'))
     Invoke-CheckedGodot --headless --path (Join-Path $PSScriptRoot 'desktop-pet') --script ('res://tests/' + $check + '.gd')
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

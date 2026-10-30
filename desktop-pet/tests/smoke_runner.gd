@@ -26,11 +26,11 @@ static func run(tree: SceneTree) -> void:
 	app.panel.dismiss_requested.emit()
 	print("SMOKE STAGE: welcome dismissed")
 	_pointer_click(app, app.pet.position + app.pet.map_skin_point(Vector2(380, 45)))
-	if app.pet.current_action != &"swim" or app.panel_window.visible:
-		printerr("SMOKE FAIL: left click did not select movement independently of plan")
+	if app.pet.current_action != &"look" or not app.ai_bubble.visible or app.panel_window.visible:
+		printerr("SMOKE FAIL: left click did not show a short invitation independently of plan")
 		tree.quit(1)
 		return
-	# A quick drag must not consume the next action in the cycle.
+	# A quick drag must not consume the next companion click.
 	var press := InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_LEFT
 	press.pressed = true
@@ -53,29 +53,31 @@ static func run(tree: SceneTree) -> void:
 		tree.quit(1)
 		return
 	print("SMOKE STAGE: context menu commands checked")
-	app.desktop._menu.id_pressed.emit(4)
-	app.pet.player.seek(1.4,true)
-	app.pet._process(0.0)
-	app._update_geometry()
-	if app.pet.current_action != &"breath" or not app.breath_effect.goal_label.visible or app.breath_effect.goal_label.text != "单例模式":
-		printerr("SMOKE FAIL: menu breath did not reveal current goal")
+	app.ai_bubble.activated.emit()
+	if not app.chat_window.visible or app.ai_bubble.visible:
+		printerr("SMOKE FAIL: short invitation did not open conversation")
 		tree.quit(1)
 		return
-	await _capture(tree,tree.root,"goal-breath")
+	app.chat_window.hide()
+	app.desktop._menu.id_pressed.emit(4)
+	if not app.panel_window.visible or app.current_goal_title != "单例模式":
+		printerr("SMOKE FAIL: goal menu did not open the current learning plan")
+		tree.quit(1)
+		return
+	app.pet.select_action(&"breath")
+	app.pet.player.seek(0.65,true)
+	app.pet._process(0.0)
+	app._update_geometry()
+	if app.breath_effect.contains_point(Vector2.ZERO):
+		printerr("SMOKE FAIL: light flourish retained a text-card click target")
+		tree.quit(1)
+		return
+	await _capture(tree,tree.root,"goal-light")
 	app.pet.player.seek(5.58,true)
 	app.pet._process(0.05)
 	app._process(0.0)
 	if app.pet.current_action != &"idle" or app.breath_effect.visible:
-		printerr("SMOKE FAIL: completed breath left a permanent goal overlay")
-		tree.quit(1)
-		return
-	app.pet.select_action(&"breath")
-	app.pet.player.seek(1.4,true)
-	app.pet._process(0.0)
-	app._update_geometry()
-	_pointer_click(app, app.breath_effect.goal_rect.get_center())
-	if not app.panel_window.visible:
-		printerr("SMOKE FAIL: goal mist click did not open study panel")
+		printerr("SMOKE FAIL: completed flourish left an overlay")
 		tree.quit(1)
 		return
 	await _capture(tree, app.panel_window, "study-plan")
@@ -130,7 +132,6 @@ static func run(tree: SceneTree) -> void:
 					await RenderingServer.frame_post_draw
 					if not _rendered_pixels_inside_region(tree.root):
 						printerr("SMOKE FAIL: GPU rendered pixels outside native mask: ", size, " / ", action, " at ", sample_time)
-						printerr("EFFECT REGION ",app.breath_effect.goal_rect," label ",app.breath_effect.goal_label.get_rect()," caption ",app.breath_effect.caption.get_rect()," time ",app.breath_effect.elapsed," current ",app.pet.current_action)
 						await _capture(tree,tree.root,"coverage-failure")
 						tree.quit(1)
 						return
@@ -154,7 +155,7 @@ static func run(tree: SceneTree) -> void:
 		printerr("SMOKE FAIL: focus workflow or settings categories missing")
 		tree.quit(1)
 		return
-	print("SMOKE TEST PASSED: energy core, first-run welcome, context menu, guiding goal, click/drag, manual progress, focus, scaling, GPU coverage, hide/show")
+	print("SMOKE TEST PASSED: energy core, first-run welcome, context menu, short invitation/chat, goal menu, click/drag, manual progress, focus, scaling, GPU coverage, hide/show")
 	tree.quit()
 
 static func _pointer_click(app: Node, point: Vector2) -> void:

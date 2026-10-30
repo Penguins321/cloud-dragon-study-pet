@@ -16,12 +16,18 @@ static func run(tree: SceneTree, check: Callable) -> void:
 			for polygon in effect.get_regions():
 				for point in polygon:
 					within_bounds = within_bounds and Rect2(Vector2(-60,-210)*size,Vector2(500,530)*size).has_point(point)
-		check.call(within_bounds,"light and scroll stay inside full animation bounds at scale %s" % size)
-		effect.set_frame(anchor*size,size,0.2,"实际学习项")
-		check.call(not effect.goal_label.visible and not effect.contains_point(effect.goal_rect.get_center()),"preparation has no premature goal or plan hit target")
-		effect.set_frame(anchor*size,size,1.4,"实际学习项")
-		check.call(effect.goal_label.visible and effect.goal_label.text == "实际学习项","formed scroll displays real current goal")
-		check.call(effect.contains_point(effect.goal_rect.get_center()),"formed scroll opens plan")
+		check.call(within_bounds,"subtle light stays inside animation bounds at scale %s" % size)
+		effect.set_frame(anchor*size,size,0.7,"不应出现在画面里的任务文本")
+		check.call(not effect.get_regions().is_empty(), "breath keeps a short light flourish")
+		check.call(effect.get_child_count() == 0, "light contains no goal text or caption controls")
+		check.call(not effect.contains_point(anchor*size), "light does not create a chat or plan hit target")
+		var local_light := true
+		for polygon in effect.get_regions():
+			for point in polygon:
+				local_light = local_light and point.distance_to(anchor*size) < 100*size
+		check.call(local_light,"light stays near companion without a connector or remote sheet")
+		effect.set_frame(anchor*size,size,3.2,"实际学习项")
+		check.call(effect.get_regions().is_empty(), "short flourish ends before the full breath animation")
 		effect.set_frame(anchor*size,size,5.6,"实际学习项")
-		check.call(effect.get_regions().is_empty() and not effect.contains_point(effect.goal_rect.get_center()),"finished light leaves no visual or invisible click region")
+		check.call(effect.get_regions().is_empty() and not effect.contains_point(anchor*size),"finished light leaves no visual or invisible click region")
 	effect.free()

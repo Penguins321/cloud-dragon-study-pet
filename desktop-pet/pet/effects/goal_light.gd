@@ -1,9 +1,6 @@
 extends Node2D
 
-# Pure presentation: main supplies the current task. This effect does not edit plans.
-var goal_label := Label.new()
-var caption := Label.new()
-var goal_rect := Rect2()
+# Breath is a small visual response. Goals and dialogue live in their own UI.
 var origin := Vector2.ZERO
 var display_scale := 1.0
 var elapsed := 0.0
@@ -12,116 +9,61 @@ var _glow := GradientTexture2D.new()
 func _ready() -> void:
 	visible = false
 	z_index = 10
-	_glow.width = 128
-	_glow.height = 128
+	_glow.width = 64
+	_glow.height = 64
 	_glow.fill = GradientTexture2D.FILL_RADIAL
-	_glow.fill_from = Vector2(0.5,0.5)
-	_glow.fill_to = Vector2(1.0,0.5)
+	_glow.fill_from = Vector2(0.5, 0.5)
+	_glow.fill_to = Vector2(1.0, 0.5)
 	_glow.gradient = Gradient.new()
-	_glow.gradient.offsets = PackedFloat32Array([0.0,0.55,1.0])
-	_glow.gradient.colors = PackedColorArray([Color(1,1,1,0.95),Color(1,1,1,0.55),Color(1,1,1,0)])
-	for label in [caption,goal_label]:
-		label.theme = preload("res://ui/study_theme.tres")
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.add_theme_color_override("font_color",Color("375b55"))
-		label.add_theme_color_override("font_outline_color",Color(1,0.99,0.9,0.6))
-		label.add_theme_constant_override("outline_size",1)
-		add_child(label)
-	caption.text = "今日目标"
-	goal_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	goal_label.max_lines_visible = 2
-	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	goal_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_glow.gradient.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+	_glow.gradient.colors = PackedColorArray([Color(1, 1, 1, 0.8), Color(1, 1, 1, 0.35), Color(1, 1, 1, 0)])
 
-func set_frame(anchor: Vector2, size: float, time: float, title: String) -> void:
+func set_frame(anchor: Vector2, size: float, time: float, _title: String) -> void:
 	visible = true
 	origin = anchor
-	display_scale = size
+	display_scale = maxf(size, 0.01)
 	elapsed = time
-	var center := anchor + Vector2(-110,-110)*size
-	goal_rect = Rect2(center-Vector2(112,64)*size,Vector2(224,128)*size)
-	var padding := maxf(6.0,12.0*size)
-	var caption_size := maxi(11,roundi(14.0*size))
-	caption.add_theme_font_size_override("font_size",caption_size)
-	caption.position = (goal_rect.position+Vector2(padding,padding)).floor()
-	caption.size = Vector2(goal_rect.size.x-padding*2,caption_size+5)
-	goal_label.add_theme_font_size_override("font_size",maxi(14,roundi(18.0*size)))
-	goal_label.position = caption.position+Vector2(0,caption_size+5)
-	goal_label.size = Vector2(goal_rect.size.x-padding*2,goal_rect.size.y-padding*2-caption_size-5)
-	goal_label.text = title
-	var text_alpha := smoothstep(1.0,1.25,time)*(1.0-smoothstep(5.1,5.6,time))
-	for label in [caption,goal_label]:
-		label.visible = text_alpha > 0.001
-		label.modulate.a = text_alpha
 	queue_redraw()
 
 func stage() -> int:
-	if elapsed < 0.35: return 0
-	if elapsed < 0.75: return 1
-	if elapsed < 5.1: return 2
+	if elapsed < 0.15: return 0
+	if elapsed < 0.5: return 1
+	if elapsed < 1.9: return 2
 	return 3
 
-func _sheet_alpha() -> float:
-	return smoothstep(0.62,1.05,elapsed)*(1.0-smoothstep(5.1,5.6,elapsed))
+func contains_point(_point: Vector2) -> bool:
+	return false
 
-func contains_point(point: Vector2) -> bool:
-	return visible and elapsed >= 1.05 and _sheet_alpha() > 0.1 and goal_rect.has_point(point)
+func _alpha() -> float:
+	return smoothstep(0.15, 0.5, elapsed) * (1.0 - smoothstep(1.1, 1.9, elapsed))
 
-func _curve(t: float) -> Vector2:
-	var end := goal_rect.end-Vector2(24,12)*display_scale
-	var a := origin+Vector2(0,-40)*display_scale
-	var b := end+Vector2(28,32)*display_scale
-	var u := 1.0-t
-	return origin*u*u*u+a*3*u*u*t+b*3*u*t*t+end*t*t*t
-
-func _flow_alpha() -> float:
-	return smoothstep(0.25,0.65,elapsed)*(1.0-smoothstep(1.2,1.8,elapsed))+smoothstep(5.0,5.2,elapsed)*(1.0-smoothstep(5.4,5.6,elapsed))
+func _particle(index: int) -> Vector2:
+	var progress := clampf((elapsed - 0.25) / 1.65, 0.0, 1.0)
+	return origin + Vector2(-8 - progress * (20 + index * 5), -4 + sin(index * 1.7) * 13 - progress * 24) * display_scale
 
 func get_regions() -> Array[PackedVector2Array]:
-	var result: Array[PackedVector2Array] = []
-	if not visible or elapsed >= 5.6: return result
-	if _sheet_alpha() > 0.001:
-		var rect := goal_rect.grow(8*display_scale)
-		result.append(PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)]))
-	if _flow_alpha() > 0.001:
-		for index in range(12):
-			var rect := Rect2(_curve(index/11.0)-Vector2.ONE*13*display_scale,Vector2.ONE*26*display_scale)
-			result.append(PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)]))
-	return result
+	var regions: Array[PackedVector2Array] = []
+	if not visible or elapsed < 0.15 or elapsed >= 1.9:
+		return regions
+	# Main refreshes native geometry on stage changes. Cover each particle's
+	# complete short path so its soft texture stays visible between those updates.
+	for index in range(5):
+		var radius := (14.0 if index == 0 else 6.0) * display_scale
+		var start := origin if index == 0 else origin + Vector2(-8, -4 + sin((index - 1) * 1.7) * 13) * display_scale
+		var end := origin if index == 0 else start + Vector2(-20 - (index - 1) * 5, -24) * display_scale
+		var rect := Rect2(end - Vector2.ONE * radius, start - end + Vector2.ONE * radius * 2)
+		regions.append(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]))
+	return regions
 
 func _draw() -> void:
-	if not visible or elapsed >= 5.6: return
-	var alpha := _sheet_alpha()
-	var flow := _flow_alpha()
-	var size := display_scale
-	if flow > 0.001:
-		var points := PackedVector2Array()
-		var reveal := smoothstep(0.25,0.75,elapsed)
-		for index in range(41): points.append(_curve(index/40.0*reveal))
-		draw_polyline(points,Color(0.96,0.83,0.49,flow*0.10),6*size,true)
-		draw_polyline(points,Color(1,0.92,0.65,flow*0.6),1.6*size,true)
-		draw_polyline(points,Color(1,1,0.91,flow*0.8),0.65*size,true)
-		for index in range(9):
-			var t := fposmod(elapsed*0.8-index*0.11,1.0)
-			if elapsed > 5.0: t = 1.0-t
-			var point := _curve(t*reveal)
-			var amount := sin(t*PI)*flow
-			draw_texture_rect(_glow,Rect2(point-Vector2.ONE*7*size,Vector2.ONE*14*size),false,Color(1,0.87,0.48,amount*0.38))
-			draw_circle(point,1.1*size,Color(1,0.97,0.78,amount))
-	if alpha <= 0.001: return
-	var open := smoothstep(0.62,1.05,elapsed)
-	var center := goal_rect.get_center()
-	var half := goal_rect.size*Vector2(0.5,0.5*open)
-	var cut := 12*size
-	var paper := PackedVector2Array([center+Vector2(-half.x+cut,-half.y),center+Vector2(half.x-cut,-half.y),center+Vector2(half.x,-half.y+cut*open),center+Vector2(half.x,half.y-cut*open),center+Vector2(half.x-cut,half.y),center+Vector2(-half.x+cut,half.y),center+Vector2(-half.x,half.y-cut*open),center+Vector2(-half.x,-half.y+cut*open)])
-	draw_polygon(paper,PackedColorArray([Color(0.94,0.98,0.91,alpha*0.91)]))
-	var outline := paper.duplicate()
-	outline.append(paper[0])
-	draw_polyline(outline,Color(0.82,0.73,0.46,alpha*0.68),0.9*size,true)
-	if open > 0.9:
-		var y := goal_rect.position.y+38*size
-		draw_line(Vector2(center.x-72*size,y),Vector2(center.x+72*size,y),Color(0.65,0.76,0.66,alpha*0.32),0.7*size,true)
-		for side in [-1,1]:
-			var tip := center+Vector2(side*(half.x-7*size),0)
-			draw_polygon(PackedVector2Array([tip+Vector2(0,-4)*size,tip+Vector2(2,0)*size,tip+Vector2(0,4)*size,tip-Vector2(2,0)*size]),PackedColorArray([Color(1,0.89,0.57,alpha)]))
+	var alpha := _alpha()
+	if not visible or alpha <= 0.001:
+		return
+	var radius := 14.0 * display_scale
+	draw_texture_rect(_glow, Rect2(origin - Vector2.ONE * radius, Vector2.ONE * radius * 2), false, Color(0.86, 1.0, 0.81, alpha * 0.28))
+	for index in range(4):
+		var point := _particle(index)
+		var amount := alpha * (0.65 + 0.35 * sin(elapsed * 3.0 + index))
+		var half := 6.0 * display_scale
+		draw_texture_rect(_glow, Rect2(point - Vector2.ONE * half, Vector2.ONE * half * 2), false, Color(0.96, 0.94, 0.68, amount * 0.3))
+		draw_circle(point, 0.85 * display_scale, Color(1.0, 0.97, 0.78, amount * 0.65))
