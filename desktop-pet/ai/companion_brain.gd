@@ -6,7 +6,7 @@ signal failed(message: String)
 signal status_changed(message: String)
 
 const ConfigStore = preload("res://ai/config_store.gd")
-const SAFE_ACTIONS := ["idle","swim","look","stretch","rest","celebrate","walk","laugh","jump","hop","spin","sway","bow","roll","dance","orbit","helix","cross_orbit","refract_turn","greet","nuzzle","startle","doze","curious"]
+const SAFE_ACTIONS := ["breath","idle","swim","look","stretch","rest","celebrate","walk","laugh","jump","hop","spin","sway","bow","roll","dance","orbit","helix","cross_orbit","refract_turn","greet","nuzzle","startle","doze","curious"]
 const ENDPOINTS := {"openai":"https://api.openai.com/v1/chat/completions","deepseek":"https://api.deepseek.com/chat/completions"}
 const BODY_LIMIT := 65536
 

@@ -33,6 +33,7 @@ var _ai_event_at := 0
 var _ai_recent_actions: Array[String] = []
 var focus_session = preload("res://study/focus_session.gd").new()
 var scheduler = preload("res://pet/ambient_scheduler.gd").new()
+var screen_roaming = preload("res://pet/screen_roaming.gd").new()
 var social_interaction = preload("res://pet/social_interaction.gd").new()
 var data_dialog = preload("res://ui/plan_data_dialog.gd").new()
 var companion_mode := "natural"
@@ -271,11 +272,15 @@ func _process(delta: float) -> void:
 		_update_geometry()
 	var allowed: bool = _ambient_enabled() and pet.is_active() and get_window().visible and get_window().mode != Window.MODE_MINIMIZED and not desktop.pointer_busy() and not panel_window.visible and not settings_window.visible and pet.current_action == &"idle"
 	_tick_ai(_ambient_elapsed,allowed)
-	var local_allowed: bool = allowed and (not _ai_configured() or _ai_fallback) and not ai_brain.busy
-	var next_action: StringName = scheduler.step(_ambient_elapsed, local_allowed)
+	var local_allowed: bool = allowed and _ai_surface_allowed() and not ai_brain.busy
+	var next_action: StringName = scheduler.step(_ambient_elapsed, local_allowed, pet.skin.action_map.keys())
 	if next_action != &"":
 		if not pet.skin.action_map.has(next_action): next_action = &"curious"
 		pet.play_action(next_action)
+	var roam_allowed: bool = _ambient_enabled() and _ai_surface_allowed()
+	var next_position: Vector2i = screen_roaming.step(_ambient_elapsed,get_window().position,get_window().size,desktop.usable_areas(),pet.current_action,roam_allowed)
+	if next_position != get_window().position:
+		desktop.restore_visible_position(next_position)
 
 func _sync_breath() -> void:
 	var active: bool = pet.is_active() and pet.current_action == &"breath"
@@ -870,7 +875,8 @@ func _ai_context_allowed() -> bool:
 
 func _ai_actions() -> Array[StringName]:
 	var actions: Array[StringName] = []
-	for action in [&"idle",&"look",&"curious",&"rest",&"stretch",&"refract_turn",&"greet",&"nuzzle",&"doze",&"bow",&"celebrate",&"dance",&"walk"]:
+	for action in [&"idle"] + scheduler.ACTIONS:
+		if action != &"idle" and String(action) in _ai_recent_actions: continue
 		if pet.skin != null and pet.skin.action_map.has(action): actions.append(action)
 	return actions
 

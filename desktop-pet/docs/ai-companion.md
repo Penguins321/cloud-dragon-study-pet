@@ -54,3 +54,9 @@ Git 忽略这两个文件及临时文件，Windows／Mac 的导出配置都明�
 显式实测入口：`scripts/test-ai-live.gd`，要求 `AI_LIVE_CONFIG` 指向本机私有配置、`CLOUD_DRAGON_DATA_DIR` 指向独立测试目录。运行一次查询模型列表及三次真实生成请求，只发送专用测试语句，不加载用户原有对话；不纳入默认回归。
 
 模型列表依据：[DeepSeek Models](https://api-docs.deepseek.com/api/list-models/)、[OpenAI Models](https://developers.openai.com/api/reference/resources/models/methods/list)。
+
+## 开发阶段的活泼动作
+
+本地自动动作开放当前角色的全部表演动作，空闲 10～20 秒触发一次，避免连续重复。开启 AI 后本地动作仍继续，AI 请求期间暂停本地调度，AI 决策最多每两分钟一次并排除最近三次 AI 动作。拖拽只由鼠标触发；专注、安静、减少动态与面板打开时仍暂停自主活动。
+
+散步、漫游、环绕、螺旋、交错会移动桌宠窗口，目标可选当前屏幕整个可用区域，速度约每秒 115～155 像素；每帧按完整窗口约束边界。其他动作保留原地表演，多屏在当前屏幕内行走，拖到另一屏后以新屏幕为活动区域。

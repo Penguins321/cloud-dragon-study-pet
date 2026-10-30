@@ -69,7 +69,7 @@ func run() -> void:
 	check(sent.url == "https://api.deepseek.com/chat/completions","fixed DeepSeek endpoint")
 	check(sent.body.max_tokens == 256 and sent.body.thinking.type == "disabled","DeepSeek token/thinking controls")
 	var payload := JSON.stringify(sent.body)
-	check(not "PRIVATE-TASK" in payload and not "dragging" in payload and not "breath" in payload,"context and actions whitelist")
+	check(not "PRIVATE-TASK" in payload and not "dragging" in payload,"context and actions whitelist")
 	check("json" in payload.to_lower() and sent.body.response_format.type == "json_object","JSON explicitly requested")
 	check(brain.request_decision({},actions,true) == ERR_BUSY,"manual cannot overlap auto")
 	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response())
@@ -87,7 +87,7 @@ func run() -> void:
 	stale.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response())
 	check(decisions.size() == 1,"cancel drops stale response")
 	check(brain.request_decision({},actions,true) != OK,"manual cooldown retained on cancel")
-	for invalid in [response("dragging"),response("breath"),response("look",12),response("look","hi\nthere"),response("look","https://evil.test"),response("look","example.com"),response("look","[b]hello[/b]"),response("look","safe","length"),"[]".to_utf8_buffer(),"{".to_utf8_buffer()]:
+	for invalid in [response("dragging"),response("look",12),response("look","hi\nthere"),response("look","https://evil.test"),response("look","example.com"),response("look","[b]hello[/b]"),response("look","safe","length"),"[]".to_utf8_buffer(),"{".to_utf8_buffer()]:
 		now += 10000
 		check(brain.request_decision({},actions,true) == OK,"next manual request")
 		var count := errors.size()

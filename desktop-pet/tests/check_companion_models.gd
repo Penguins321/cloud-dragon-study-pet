@@ -114,8 +114,8 @@ func test_ambient(script) -> void:
 		check(action == second.step(0.5, true), "seeded sequence is reproducible")
 		elapsed += 0.5
 		if action != &"":
-			check(elapsed >= 45.0 and elapsed <= 90.5, "event interval within cooldown")
-			check(action in [&"look", &"rest", &"stretch", &"refract_turn"] and action != previous, "candidate valid and does not repeat")
+			check(elapsed >= 10.0 and elapsed <= 20.5, "event interval within cooldown")
+			check(action in script.ACTIONS and action != previous, "candidate valid and does not repeat")
 			previous = action
 			elapsed = 0.0
 			event_count += 1
@@ -123,15 +123,15 @@ func test_ambient(script) -> void:
 	var blocked = script.new(42)
 	for index in 200:
 		check(blocked.step(1.0, false) == &"", "blocked never emits")
-	for index in 44:
+	for index in 9:
 		check(blocked.step(1.0, true) == &"", "unblocking waits full cooldown")
 	check(blocked.step(900.0, true) == &"", "sleep never catches up")
-	for index in 44:
+	for index in 9:
 		check(blocked.step(1.0, true) == &"", "sleep restarts full cooldown")
 	blocked.reset()
 	for invalid in [-1.0, NAN, INF]:
 		check(blocked.step(invalid, true) == &"", "invalid scheduler delta is silent")
-	for index in 44:
+	for index in 9:
 		check(blocked.step(1.0, true) == &"", "reset waits full cooldown")
 	# Polling blocked frames must not consume new random intervals each frame.
 	var many = script.new(42)
