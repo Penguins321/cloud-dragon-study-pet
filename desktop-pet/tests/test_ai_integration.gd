@@ -28,11 +28,14 @@ func run() -> void:
 	app.settings_window.hide()
 	app.pet.play_action(&"idle")
 	app._ai_request_skin = app.selected_skin
-	app._on_ai_decision({"action":&"look","text":"慢慢来，我在这里。","test":false})
+	app._on_ai_decision({"action":&"look","text":"慢慢来，我在这里。","test":false,"intent":"想四处逛逛","plan":["walk","rest"]})
 	if DisplayServer.get_name() != "headless":
 		check(app.pet.current_action == &"look","Valid AI decision uses existing animation")
 		check(app.ai_bubble.visible,"AI can show short speech")
+		check(app._mind().context().remaining_plan == [&"walk",&"rest"],"AI episode is retained for follow-up execution")
+		check(app.settings.ai_panel.intention_label.text.contains("想四处逛逛"),"Companion intention is visible")
 	app._show_settings()
+	check(app._mind().context().remaining_plan.is_empty(),"Opening settings interrupts the old plan")
 	check(not app.ai_bubble.visible,"Settings immediately silence AI bubble")
 	app._ai_request_skin = app.selected_skin
 	app._on_ai_decision({"action":&"dance","text":"不应显示","test":false})

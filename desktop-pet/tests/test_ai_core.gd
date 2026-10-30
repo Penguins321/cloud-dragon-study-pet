@@ -137,6 +137,12 @@ func run() -> void:
 	brain.request_decision({},actions)
 	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),response("idle",""))
 	check(decisions.back().text == "","silent action accepted")
+	now += 120000
+	brain.request_decision({"mind":{"energy":0.2,"curiosity":0.7,"social_need":0.4,"intention":"想休息","recent_actions":["dance"],"remaining_plan":["look"],"private_task":"not sent"}},actions)
+	check(sent.body.messages[1].content.contains("energy") and not sent.body.messages[1].content.contains("not sent"),"Only bounded simulated needs enter autonomous context")
+	var planned := {"choices":[{"finish_reason":"stop","message":{"content":JSON.stringify({"action":"idle","text":"我歇一会儿","intent":"玩累了想休息","plan":["look","dragging","look","breath"]})}}]}
+	completion.call(HTTPRequest.RESULT_SUCCESS,200,PackedStringArray(),JSON.stringify(planned).to_utf8_buffer())
+	check(decisions.back().plan == ["look","breath"] and decisions.back().intent == "玩累了想休息","Short plans retain valid unique follow-ups and a safe intention")
 	test_chat(brain,cfg,actions)
 	brain.free()
 	DirAccess.remove_absolute(path)

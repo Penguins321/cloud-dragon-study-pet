@@ -15,12 +15,11 @@ func run() -> void:
 	app.settings_window.hide()
 	app.desktop.last_click_double = false
 	app._handle_pet_click()
-	check(app.pet.current_action == &"look","Single click asks companion to respond")
-	check(app.ai_bubble.visible,"Single click shows a short invitation instead of a task card")
-	if app.ai_bubble.has_signal("activated"):
-		app.ai_bubble.activated.emit()
-		check(app.chat_window.visible and not app.ai_bubble.visible,"Clicking the short sentence opens conversation")
-	else: check(false,"Short message must activate chat")
+	check(app.chat_window.visible,"Single click directly opens conversation")
+	check(app.pet.current_action != &"idle","Single click also changes performance action")
+	var prior: StringName = app.pet.current_action
+	app._handle_pet_click()
+	check(app.pet.current_action != prior,"Consecutive clicks change the current action")
 	app.chat_window.hide()
 	app.desktop._on_menu(4)
 	check(app.panel_window.visible,"Learning goal has its own menu route")
@@ -42,8 +41,6 @@ func run() -> void:
 			app._handle_pet_click()
 			await process_frame
 			await process_frame
-			check(app.ai_bubble.visible,"Explicit caption remains clickable in " + mode)
-			app.ai_bubble.activated.emit()
 			check(app.chat_window.visible,"Manual chat opens in " + mode)
 			app.chat_window.hide()
 			app._set_companion_mode("natural")

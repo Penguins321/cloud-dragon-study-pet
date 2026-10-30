@@ -26,8 +26,8 @@ static func run(tree: SceneTree) -> void:
 	app.panel.dismiss_requested.emit()
 	print("SMOKE STAGE: welcome dismissed")
 	_pointer_click(app, app.pet.position + app.pet.map_skin_point(Vector2(380, 45)))
-	if app.pet.current_action != &"look" or not app.ai_bubble.visible or app.panel_window.visible:
-		printerr("SMOKE FAIL: left click did not show a short invitation independently of plan")
+	if app.pet.current_action == &"idle" or not app.chat_window.visible or app.panel_window.visible:
+		printerr("SMOKE FAIL: left click did not open chat with a response action")
 		tree.quit(1)
 		return
 	# A quick drag must not consume the next companion click.
@@ -41,7 +41,7 @@ static func run(tree: SceneTree) -> void:
 	release.position = press.position + Vector2(100, 100)
 	app.desktop._input(release)
 	_pointer_click(app, app.pet.position + app.pet.map_skin_point(Vector2(380, 45)))
-	if app.pet.current_action != &"look":
+	if app.pet.current_action == &"idle":
 		printerr("SMOKE FAIL: rapid drag consumed a click action")
 		tree.quit(1)
 		return

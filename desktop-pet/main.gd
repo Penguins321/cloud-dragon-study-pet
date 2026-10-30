@@ -34,6 +34,17 @@ var _ai_recent_actions: Array[String] = []
 var focus_session = preload("res://study/focus_session.gd").new()
 var scheduler = preload("res://pet/ambient_scheduler.gd").new()
 var screen_roaming = preload("res://pet/screen_roaming.gd").new()
+var _minds: Dictionary = {}
+var _observed_action: StringName = &"idle"
+var _observed_skin := ""
+var _rhythm_elapsed := 60.0
+
+func _mind():
+	if not _minds.has(selected_skin):
+		_minds[selected_skin] = preload("res://ai/autonomous_mind.gd").new()
+		_minds[selected_skin].set_hour(Time.get_time_dict_from_system().hour)
+	return _minds[selected_skin]
+
 var social_interaction = preload("res://pet/social_interaction.gd").new()
 var data_dialog = preload("res://ui/plan_data_dialog.gd").new()
 var companion_mode := "natural"
@@ -255,6 +266,17 @@ func _process(delta: float) -> void:
 		return
 	pet.set_interaction_paused(desktop.context_menu_active())
 	_tick_companion()
+	_rhythm_elapsed += delta
+	if _rhythm_elapsed >= 30.0:
+		_rhythm_elapsed = 0.0
+		for mind in _minds.values(): mind.set_hour(Time.get_time_dict_from_system().hour)
+	_mind().advance(_ambient_elapsed,_ambient_enabled() and pet.is_active())
+	if _observed_skin != selected_skin:
+		_observed_skin = selected_skin
+		_observed_action = &"idle"
+	if pet.current_action != _observed_action:
+		_observed_action = pet.current_action
+		_mind().observe(_observed_action)
 	_observe_icons(delta)
 	if _preferences_ready:
 		var now := Time.get_ticks_msec()
@@ -275,8 +297,12 @@ func _process(delta: float) -> void:
 	var local_allowed: bool = allowed and _ai_surface_allowed() and not ai_brain.busy
 	var next_action: StringName = scheduler.step(_ambient_elapsed, local_allowed, pet.skin.action_map.keys())
 	if next_action != &"":
-		if not pet.skin.action_map.has(next_action): next_action = &"curious"
+		var supported: Array[StringName] = []
+		for action in scheduler.ACTIONS:
+			if pet.skin.action_map.has(action): supported.append(action)
+		next_action = _mind().choose(supported)
 		pet.play_action(next_action)
+		settings.ai_panel.set_intention(_mind().intention)
 	var roam_allowed: bool = _ambient_enabled() and _ai_surface_allowed()
 	var next_position: Vector2i = screen_roaming.step(_ambient_elapsed,get_window().position,get_window().size,desktop.usable_areas(),pet.current_action,roam_allowed)
 	if next_position != get_window().position:
@@ -408,17 +434,16 @@ func _toggle_plan() -> void:
 		_show_plan()
 
 func _handle_pet_click() -> void:
-	_interrupt_ai()
+	_mind().interact()
+	_show_ai_chat()
+	settings.ai_panel.set_intention(_mind().intention)
 	if desktop.last_click_double:
 		pet.select_action(&"greet" if selected_skin == "warm_jade" else &"bow")
 		return
-	pet.select_action(&"look")
-	if not ai_config.get("bubbles",true):
-		_show_ai_chat()
-		return
-	var greetings := {"warm_jade":"我在这里，点这句话聊聊。","corgi":"我来啦，想聊点什么？","duck":"有什么新鲜事？点这里聊聊。","jellyfish":"慢慢说，我听着呢。"}
-	_ai_manual_caption = true
-	ai_bubble.show_message(greetings.get(selected_skin,"点这里，和我聊聊。"),_ai_actor_rect(),desktop.usable_areas(),font_level,topmost_enabled)
+	var candidates: Array[StringName] = []
+	for action in scheduler.ACTIONS:
+		if pet.skin.action_map.has(action) and action != pet.current_action: candidates.append(action)
+	pet.select_action(_mind().choose(candidates))
 
 func _show_plan() -> void:
 	_interrupt_ai()
@@ -431,6 +456,7 @@ func _show_plan() -> void:
 	pet.play_action(&"curious")
 
 func _show_settings() -> void:
+	settings.ai_panel.set_intention(_mind().intention)
 	_interrupt_ai()
 	chat_window.hide()
 	_refresh_startup()
@@ -881,7 +907,7 @@ func _ai_actions() -> Array[StringName]:
 	return actions
 
 func _ai_context() -> Dictionary:
-	return {"companion":selected_skin,"focus":focus_session.state == "running","idle_band":"long" if _ai_idle_elapsed >= 120.0 else "short","event":_ai_event if not _ai_event.is_empty() else "idle","recent_actions":_ai_recent_actions.duplicate(),"preferences":ai_memory_data.preferences.duplicate(),"persona":_ai_persona()}
+	return {"companion":selected_skin,"focus":focus_session.state == "running","idle_band":"long" if _ai_idle_elapsed >= 120.0 else "short","event":_ai_event if not _ai_event.is_empty() else "idle","recent_actions":_ai_recent_actions.duplicate(),"preferences":ai_memory_data.preferences.duplicate(),"persona":_ai_persona(),"mind":_mind().context()}
 
 func _tick_ai(delta: float, ready: bool) -> void:
 	if not _ai_context_allowed():
@@ -926,6 +952,8 @@ func _on_ai_decision(decision: Dictionary) -> void:
 	if not _ai_configured() or skin != selected_skin or not _ai_context_allowed() or pet.current_action != &"idle": return
 	var action := StringName(decision.get("action",&"idle"))
 	if not _ai_actions().has(action): return
+	_mind().accept_plan(decision.get("plan",[]),str(decision.get("intent","")),_ai_actions())
+	settings.ai_panel.set_intention(_mind().intention)
 	pet.play_action(action)
 	_ai_recent_actions.append(String(action))
 	if _ai_recent_actions.size() > 3: _ai_recent_actions.pop_front()
@@ -950,6 +978,7 @@ func _on_ai_failure(message: String) -> void:
 	settings.ai_panel.set_status(message)
 
 func _interrupt_ai(clear_event: bool = false) -> void:
+	_mind().clear_plan()
 	_ai_manual_caption = false
 	ai_brain.cancel()
 	if _ai_chat_pending:
@@ -1048,6 +1077,7 @@ func _send_ai_chat(text: String) -> void:
 
 func _on_ai_chat_ready(reply: String, memories: Array[String]) -> void:
 	if not _ai_chat_pending or _ai_chat_pending_role != selected_skin or not chat_window.visible: return
+	_mind().interact()
 	var user_text := _ai_chat_pending_text
 	_ai_chat_pending = false
 	_ai_chat_pending_text = ""

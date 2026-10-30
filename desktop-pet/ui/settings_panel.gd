@@ -162,7 +162,7 @@ func _ready() -> void:
 	_motions.add_theme_constant_override("h_separation",6)
 	_motions.add_theme_constant_override("v_separation",6)
 	motion.add_child(_motions)
-	var note := _label("轻点伙伴显示一句短话，点短话开始聊天；按住拖动，右键查看计划。",12,Color("627362"))
+	var note := _label("轻点伙伴直接打开聊天，并切换一个回应动作；按住拖动，右键查看计划。",12,Color("627362"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_sections.add_child(note)
 	_sections = _category_sections["数据与帮助"]
@@ -471,6 +471,6 @@ func _build_data_help() -> void:
 	card.add_child(scopes)
 	var help := _card()
 	help.add_child(_label("从这里开始",16))
-	var instructions := _label("轻点伙伴，它会先回应并显示一句短话；点短话打开聊天与记忆。按住拖动。温玉灵核：双击招手，中键亲昵；靠近时轻轻注视，左右轻扫会亲昵回应。动物伙伴：双击鞠躬，空闲时跟随附近指针。右键菜单中的“查看学习目标”打开学习计划；引光只保留轻微光效。\n\n任务由你手动标记完成，再手动开始下一项；专注计时不会改变清单进度。追加任务或修订当前内容可保留进度。\n\n专注支持暂停、继续和结束本次；系统休眠后恢复为暂停。\n\n收起或按 Escape 关闭面板。隐藏宠物后，可从托盘菜单再次显示；退出会结束程序。",13)
+	var instructions := _label("轻点伙伴直接打开聊天与记忆，同时换一个动作回应。按住拖动。温玉灵核：双击招手，中键亲昵；靠近时轻轻注视，左右轻扫会亲昵回应。动物伙伴：双击鞠躬，空闲时跟随附近指针。右键菜单中的“查看学习目标”打开学习计划；引光只保留轻微光效。\n\n任务由你手动标记完成，再手动开始下一项；专注计时不会改变清单进度。追加任务或修订当前内容可保留进度。\n\n专注支持暂停、继续和结束本次；系统休眠后恢复为暂停。\n\n收起或按 Escape 关闭面板。隐藏宠物后，可从托盘菜单再次显示；退出会结束程序。",13)
 	instructions.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_child(instructions)

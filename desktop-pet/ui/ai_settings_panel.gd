@@ -16,6 +16,7 @@ var save_button := Button.new()
 var test_button := Button.new()
 var status_label := Label.new()
 var chat_button := Button.new()
+var intention_label := Label.new()
 var _selected_provider := "deepseek"
 
 func _init() -> void:
@@ -26,6 +27,10 @@ func _init() -> void:
 		set_status(message))
 	add_theme_constant_override("separation",8)
 	_add_label("AI 陪伴",16)
+	intention_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intention_label.add_theme_font_size_override("font_size",12)
+	add_child(intention_label)
+	set_intention("想看看周围有什么有趣的")
 	_add_label("自主陪伴默认关闭。自主决策发送角色、专注状态、闲置时长区间、最近动作和事件类型，也可能使用已保存偏好；不自动读取或发送任务内容、屏幕或文件。")
 	_add_label("聊天会将最近对话、已保存偏好和当前伙伴性格发送给选定的服务商。关闭自主陪伴后仍可手动聊天。")
 	enabled_button.text = "启用自主 AI 陪伴"
@@ -77,6 +82,9 @@ func _add_label(message: String, font_size := 12) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.add_theme_font_size_override("font_size",font_size)
 	add_child(label)
+
+func set_intention(value: String) -> void:
+	intention_label.text = "伙伴此刻：" + value
 
 func set_config(config: Dictionary) -> void:
 	catalog.cancel()

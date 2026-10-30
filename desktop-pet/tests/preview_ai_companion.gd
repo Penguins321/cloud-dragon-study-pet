@@ -23,7 +23,7 @@ func run() -> void:
 	app.desktop.last_click_double = false
 	app._handle_pet_click()
 	await settle()
-	capture(app.ai_bubble,"short-invitation")
+	# Body click now opens chat directly. Autonomous captions still use ai_bubble.
 	app._show_ai_chat()
 	var preferences: Array[String] = ["我喜欢安静一点的陪伴"]
 	app.ai_memory_data = app.AIMemory.append_exchange(app.AIMemory.defaults(),"corgi","我喜欢安静一点的陪伴，不用总催我。","记住啦。我会安静陪着你，需要我时点一下就好。",preferences)

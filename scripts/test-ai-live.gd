@@ -44,10 +44,15 @@ func run() -> void:
 	brain.chat_ready.connect(func(reply, memories): result = {"reply":reply,"memories":memories})
 	var actions: Array[StringName] = [&"idle", &"look", &"greet"]
 	var started := Time.get_ticks_msec()
-	var request: int = brain.request_decision({"companion":"warm_jade","event":"idle"},actions,true)
+	var request: int = brain.request_decision({"companion":"warm_jade","event":"idle","mind":{"energy":0.8,"curiosity":0.9,"social_need":0.2,"intention":"想探索一下","recent_actions":[],"remaining_plan":[]}},actions,true)
 	await wait_result(request)
 	if not failure.is_empty(): return
 	print("LIVE decision: OK; action=",result.action,"; elapsed_ms=",Time.get_ticks_msec()-started)
+	if result.get("plan",[]).is_empty() or str(result.get("intent","")).is_empty():
+		printerr("LIVE autonomous episode did not include intention and follow-up plan.")
+		quit(1)
+		return
+	print("LIVE autonomous episode: OK; follow-ups=",result.plan.size())
 	result = {}
 	var messages: Array = [{"role":"user","content":"我喜欢简短的回复。请记住这个偏好，简单和我打个招呼。"}]
 	var preferences: Array[String] = []
