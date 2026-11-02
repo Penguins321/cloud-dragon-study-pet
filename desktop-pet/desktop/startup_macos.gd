@@ -1,13 +1,15 @@
 extends RefCounted
 
 const LABEL := "org.warmjade.studycompanion"
+var label := LABEL
 var available := false
 var message := ""
 var shortcut_path := ""
 var executable_path := ""
 
 # Directory overrides isolate tests from the real login configuration.
-func _init(directory_override := "", executable_override := "") -> void:
+func _init(directory_override := "", executable_override := "", label_override := LABEL) -> void:
+	label = label_override
 	if directory_override.is_empty():
 		if OS.get_name() != "macOS" or OS.has_feature("editor") or not OS.get_environment("CLOUD_DRAGON_DATA_DIR").is_empty():
 			message = "请在正式导出的应用中设置自启动；开发和隔离测试不会修改系统配置。"
@@ -26,9 +28,8 @@ func _init(directory_override := "", executable_override := "") -> void:
 			message = "请先将应用移到应用程序文件夹，再设置自启动。"
 			return
 		directory = home_directory.path_join("Library/LaunchAgents")
-	shortcut_path = directory.path_join(LABEL + ".plist")
+	shortcut_path = directory.path_join(label + ".plist")
 	available = true
-	if is_enabled(): set_enabled(true)
 
 func is_enabled() -> bool:
 	return not shortcut_path.is_empty() and FileAccess.file_exists(shortcut_path)
@@ -52,7 +53,7 @@ func set_enabled(enabled: bool) -> Error:
 	if file == null:
 		message = "无法写入登录启动项。"
 		return FileAccess.get_open_error()
-	file.store_string("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<plist version=\"1.0\"><dict><key>Label</key><string>%s</string><key>ProgramArguments</key><array><string>%s</string></array><key>RunAtLoad</key><true/><key>LimitLoadToSessionType</key><string>Aqua</string></dict></plist>" % [LABEL, executable_path.xml_escape()])
+	file.store_string("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<plist version=\"1.0\"><dict><key>Label</key><string>%s</string><key>ProgramArguments</key><array><string>%s</string></array><key>RunAtLoad</key><true/><key>LimitLoadToSessionType</key><string>Aqua</string></dict></plist>" % [label, executable_path.xml_escape()])
 	file.flush()
 	error = file.get_error()
 	file.close()

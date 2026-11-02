@@ -1,0 +1,6 @@
+Created with built-in image_gen, transparent_background=true.
+Reference: titi-transparent.png (approved character).
+Initial prompt summary: exact grey-white Titi, 4 columns x 2 rows; four seated blink/tail frames, four curled sleep/breathing frames; fixed feet and torso; transparent background; preserve blue eyes and ring-striped tail.
+Final repair prompt:
+Repair this production sprite sheet. Keep EXACT eight cats, poses, eyelid phases, color and linework. REMOVE ALL background haze/grey/brown glow/shadow to fully transparent alpha=0 outside cats. Keep white fur opaque. Remove motion marks over sleeping ear. Re-layout exact four columns and two rows on 1536x1024 transparent canvas, cells 384x512. Each sprite maximum width 310 pixels, with at least 35 transparent pixels both sides inside its own cell. NO tail may cross cell boundaries x384,768,1152. Top row feet at y450, bottom row baseline y950. Same body position within each row, never resized independently between frames. No shadows, no glow, no background, no decorations. This must be clean cutout pixel alpha, not a dark background.
+Output grid is not exact: animation.gd uses hand-verified atlas cuts and common frame canvases to preserve the tails and align torsos.
