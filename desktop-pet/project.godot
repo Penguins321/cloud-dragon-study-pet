@@ -1,9 +1,10 @@
 config_version=5
 
 [application]
-config/name="温玉灵核学习搭子"
-config/version="0.17"
-run/main_scene="res://main.tscn"
+config/name="提提"
+config/version="0.24.1"
+config/icon="res://titi/app-icon.png"
+run/main_scene="res://titi/main.tscn"
 run/main_scene.prototype_validation="res://tests/export_runner.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/use_custom_user_dir=true

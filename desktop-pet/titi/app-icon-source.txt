@@ -1,0 +1,4 @@
+Tool: built-in image_gen (imagegen skill), transparent_background=true.
+Reference: titi-transparent.png, upper-right sitting pose.
+Final prompt:
+Use case: logo-brand. Create one square macOS app icon for Titi from the reference character sheet. Use only the upper-right sitting grey-white cat, preserve its distinctive round face, blue eyes, soft charcoal outlines, pink ears, and thick ring-striped tail. Center one complete sitting cat, large and readable, occupying 85% of the square. Flat clean cartoon linework matching the approved reference. Genuine transparent background outside the cat, opaque white fur. No tile background, text, extra cats, props, shadows, gradients, or decorative elements. Single icon, not a sheet. 1024x1024.

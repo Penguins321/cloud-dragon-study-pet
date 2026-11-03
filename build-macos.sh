@@ -8,7 +8,7 @@ OUT="$ROOT/desktop-pet/build/macos"
 mkdir -p "$OUT"
 # A fresh staging directory avoids accidentally shipping stale bundle contents.
 STAGE="$(mktemp -d "$OUT/stage.XXXXXX")"
-APP="$STAGE/WarmJade.app"
+APP="$STAGE/Titi.app"
 "$GODOT" --headless --editor --path "$ROOT/desktop-pet" --import
 "$GODOT" --headless --path "$ROOT/desktop-pet" --export-release 'macOS' "$APP"
 EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")
@@ -22,7 +22,7 @@ else
   /usr/bin/codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$APP"
 fi
 /usr/bin/codesign --verify --deep --strict "$APP"
-ZIP="$OUT/WarmJade-macOS.zip"
+ZIP="$OUT/Titi-macOS-v0.24.1.zip"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 if [[ -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
   [[ "$IDENTITY" != '-' ]] || { echo 'Notarization requires Developer ID signing.' >&2; exit 1; }
